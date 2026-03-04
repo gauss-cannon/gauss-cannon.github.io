@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cañón de Gauss · Demo Interactiva</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Black+Ops+One&display=swap');
+
+:root {
+  --bg: #07090f;
+  --panel: rgba(7,12,22,0.96);
+  --amber: #ff8c2a;
+  --amber-dim: rgba(255,140,42,0.25);
+  --teal: #00d9b0;
+  --teal-dim: rgba(0,217,176,0.15);
+  --red: #ff4040;
+  --text: #b4ccd8;
+  --text-dim: rgba(180,204,216,0.45);
+  --border: rgba(0,217,176,0.18);
+  --border-a: rgba(255,140,42,0.28);
+  --glow-a: 0 0 24px rgba(255,140,42,0.35);
+  --glow-t: 0 0 24px rgba(0,217,176,0.35);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Rajdhani',sans-serif;color:var(--text);touch-action:none;user-select:none}
+canvas{display:block;touch-action:none}
+
+/* ── CUSTOM SCROLLBARS ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:rgba(0,217,176,0.04);border-radius:3px}
+::-webkit-scrollbar-thumb{background:rgba(0,217,176,0.28);border-radius:3px;transition:background .2s}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,217,176,0.55)}
+::-webkit-scrollbar-corner{background:transparent}
+* { scrollbar-width:thin; scrollbar-color:rgba(0,217,176,0.28) rgba(0,217,176,0.04); }
+
+/* ── NAV ── */
+#nav{
+  position:fixed;top:0;left:0;right:0;height:54px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;z-index:100;
+  background:rgba(7,9,15,0.94);
+  border-bottom:1px solid rgba(0,217,176,0.12);
+  backdrop-filter:blur(20px);
+}
+#nav-brand{line-height:1.1;flex-shrink:0}
+#nav-title{
+  font-family:'Black Ops One',serif;font-size:1.05rem;
+  color:var(--amber);letter-spacing:0.06em;
+  text-shadow:0 0 16px rgba(255,140,42,0.5);
+}
+#nav-sub{font-size:0.6rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-dim);margin-top:1px}
+
+/* Desktop nav buttons */
+#nav-btns{display:flex;gap:8px}
+.nbtn{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 13px;
+  background:var(--teal-dim);border:1px solid var(--border);border-radius:3px;
+  color:var(--teal);font-family:'Rajdhani',sans-serif;font-size:0.77rem;
+  font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.nbtn:hover{background:rgba(0,217,176,0.2);border-color:var(--teal);box-shadow:var(--glow-t)}
+.nbtn.nbtn-amber{background:rgba(255,140,42,0.12);border-color:var(--border-a);color:var(--amber)}
+.nbtn.nbtn-amber:hover{background:rgba(255,140,42,0.22);border-color:var(--amber);box-shadow:var(--glow-a)}
+.nbtn svg{flex-shrink:0}
+
+/* Hide desktop nav on mobile, show bottom bar */
+@media(max-width:640px){
+  #nav-btns{display:none}
+}
+
+/* ── MOBILE BOTTOM NAV ── */
+#mobile-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(7,9,15,0.97);
+  border-top:1px solid rgba(0,217,176,0.14);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  padding:6px 0 calc(6px + env(safe-area-inset-bottom));
+}
+@media(max-width:640px){#mobile-nav{display:flex}}
+.mnav-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  width:100%;
+}
+.mnbtn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;padding:8px 4px;border:none;background:none;cursor:pointer;
+  color:rgba(0,217,176,0.55);font-family:'Rajdhani',sans-serif;
+  font-size:0.58rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  transition:color .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mnbtn:active,.mnbtn:hover{color:var(--teal)}
+.mnbtn.amber{color:rgba(255,140,42,0.55)}
+.mnbtn.amber:active,.mnbtn.amber:hover{color:var(--amber)}
+.mnbtn svg{width:18px;height:18px}
+/* Adjust hint/counter bottom spacing on mobile */
+@media(max-width:640px){
+  #hint{bottom:calc(62px + env(safe-area-inset-bottom))}
+  #counter{bottom:calc(62px + env(safe-area-inset-bottom))}
+}
+
+/* ── HINT ── */
+#hint{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  z-index:10;pointer-events:none;text-align:center;
+  transition:opacity .8s;
+}
+#hint-inner{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:rgba(180,204,216,0.32);
+  border:1px solid rgba(255,140,42,0.1);padding:6px 18px;border-radius:20px;
+  backdrop-filter:blur(8px);background:rgba(7,9,15,0.35);
+}
+.hdot{width:5px;height:5px;border-radius:50%;background:var(--amber);opacity:.5;animation:dp 2.2s infinite}
+@keyframes dp{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.9;transform:scale(1.4)}}
+
+/* ── COUNTER ── */
+#counter{
+  position:fixed;bottom:20px;right:18px;
+  font-family:'Black Ops One',serif;font-size:0.65rem;letter-spacing:0.15em;
+  color:rgba(0,217,176,0.3);z-index:10;pointer-events:none;
+}
+
+/* ── TOOLTIP ── */
+#tip{
+  position:fixed;pointer-events:none;z-index:200;
+  background:rgba(7,12,22,0.92);border:1px solid var(--border-a);border-radius:3px;
+  padding:5px 12px;font-family:'Rajdhani',sans-serif;
+  font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--amber);opacity:0;transition:opacity .15s;
+  backdrop-filter:blur(8px);white-space:nowrap;
+}
+
+/* ── INFO PANEL ── */
+#panel{
+  position:fixed;z-index:50;
+  background:var(--panel);border:1px solid var(--border);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  transition:transform .44s cubic-bezier(.16,1,.3,1),opacity .32s;
+  overflow:hidden;
+}
+@media(min-width:769px){
+  #panel{
+    top:50%;right:18px;width:316px;
+    max-height:calc(100vh - 110px);border-radius:5px;
+    transform:translateY(-50%) translateX(380px);opacity:0;
+    overflow-y:auto;
+  }
+  #panel.open{transform:translateY(-50%) translateX(0);opacity:1}
+}
+@media(max-width:768px){
+  #panel{
+    bottom:0;left:0;right:0;max-height:68vh;
+    border-radius:14px 14px 0 0;border-bottom:none;
+    transform:translateY(100%);overflow-y:auto;
+  }
+  #panel.open{transform:translateY(0)}
+}
+.drag-bar{
+  width:38px;height:4px;background:rgba(255,255,255,0.13);
+  border-radius:2px;margin:11px auto 0;display:none;
+}
+@media(max-width:768px){.drag-bar{display:block}}
+.pi{padding:20px 22px 26px}
+.p-cat{font-size:0.6rem;letter-spacing:0.28em;text-transform:uppercase;color:var(--teal);margin-bottom:7px;opacity:.8}
+.p-name{font-family:'Black Ops One',serif;font-size:1.1rem;color:#fff;margin-bottom:3px;line-height:1.2}
+.p-id{font-size:0.67rem;letter-spacing:.15em;color:var(--amber);margin-bottom:13px;font-weight:600}
+.p-div{height:1px;background:linear-gradient(to right,var(--teal),transparent);opacity:.25;margin-bottom:13px}
+.p-desc{font-size:0.87rem;line-height:1.62;color:var(--text);opacity:.87}
+.p-stats{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sbox{background:rgba(0,217,176,0.04);border:1px solid rgba(0,217,176,0.11);border-radius:4px;padding:8px 11px}
+.slbl{font-size:0.59rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.sval{font-family:'Black Ops One',serif;font-size:0.84rem;color:var(--amber)}
+
+.sch-sec{margin-top:16px}
+.sch-lbl{font-size:0.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--teal);margin-bottom:7px;opacity:.7}
+.sch-thumb{
+  width:100%;border:1px solid rgba(0,217,176,0.18);border-radius:4px;
+  background:#050e18;cursor:zoom-in;overflow:hidden;position:relative;
+  transition:border-color .2s,box-shadow .2s;min-height:80px;
+  display:flex;align-items:center;justify-content:center;
+}
+.sch-thumb:hover{border-color:var(--teal);box-shadow:var(--glow-t)}
+.sch-thumb img{width:100%;height:auto;display:block;pointer-events:none}
+.sch-zh{position:absolute;bottom:6px;right:8px;font-size:0.58rem;letter-spacing:.1em;color:rgba(0,217,176,0.6);text-transform:uppercase;background:rgba(3,5,8,.7);padding:2px 6px;border-radius:2px}
+/* Info panel custom scrollbar */
+#panel{overflow-y:auto;-webkit-overflow-scrolling:touch}
+#panel::-webkit-scrollbar{width:3px}
+#panel::-webkit-scrollbar-thumb{background:rgba(0,217,176,0.2)}
+#close-panel{
+  position:absolute;top:14px;right:14px;background:none;border:none;
+  color:var(--text-dim);font-size:1.1rem;cursor:pointer;line-height:1;
+  transition:color .2s;z-index:2;
+}
+#close-panel:hover{color:var(--amber)}
+
+/* ── SCHEMATIC MODAL ── */
+#sch-modal{
+  position:fixed;inset:0;z-index:300;
+  display:none;flex-direction:column;
+  background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  padding-top:54px;
+}
+#sch-modal.open{display:flex}
+#smc{
+  flex:1;display:flex;flex-direction:column;
+  min-height:0; /* critical for flex children to scroll */
+  max-width:980px;width:100%;margin:0 auto;
+  background:var(--panel);border:1px solid var(--border);
+  border-top:none;overflow:hidden;
+}
+#smh{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+#smt{font-family:'Black Ops One',serif;font-size:.88rem;color:var(--teal);letter-spacing:.08em}
+#smclose{
+  background:none;border:none;color:var(--text-dim);font-size:1.5rem;
+  cursor:pointer;transition:color .2s;line-height:1;padding:4px 8px;
+  -webkit-tap-highlight-color:transparent;
+}
+#smclose:hover{color:var(--amber)}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
+.tab{
+  padding:11px 22px;font-family:'Rajdhani',sans-serif;font-size:.77rem;
+  font-weight:600;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;
+  color:var(--text-dim);cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;
+  -webkit-tap-highlight-color:transparent;flex:1;text-align:center;
+}
+.tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+.tab:hover:not(.on){color:var(--text)}
+/* Flex column panes with scrollable content */
+.tpane{display:none;flex:1;min-height:0;flex-direction:column;overflow:hidden}
+.tpane.on{display:flex}
+#tpane-full{flex:1;min-height:0;overflow:hidden}
+.pdf-wrap{width:100%;height:100%;display:flex;flex-direction:column;min-height:0}
+.pdf-wrap iframe{flex:1;border:none;min-height:0}
+/* On mobile, iframe PDF is unreliable — show open-button fallback prominently */
+@media(max-width:640px){
+  .pdf-wrap iframe{display:none}
+  .pdf-mobile-bar{
+    display:flex!important;
+  }
+}
+.pdf-mobile-bar{
+  display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:36px 24px;text-align:center;flex:1;
+}
+.pdf-mobile-bar p{font-size:.85rem;color:var(--text-dim);line-height:1.6;max-width:300px}
+.pdf-fallback{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center}
+.pdf-fallback p{font-size:.85rem;color:var(--text-dim);line-height:1.6;max-width:340px}
+.pdf-link{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 22px;background:var(--teal-dim);border:1px solid var(--border);border-radius:3px;
+  color:var(--teal);font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:all .2s;
+}
+.pdf-link:hover{background:rgba(0,217,176,0.2);border-color:var(--teal);box-shadow:var(--glow-t)}
+#tpane-sec{
+  flex:1;min-height:0;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+}
+.sec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:480px){.sec-grid{grid-template-columns:1fr}}
+.sec-card{
+  background:rgba(0,217,176,0.03);border:1px solid var(--border);border-radius:4px;
+  overflow:hidden;cursor:zoom-in;transition:border-color .2s,box-shadow .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.sec-card:hover,.sec-card:active{border-color:var(--teal);box-shadow:var(--glow-t)}
+.sec-title{
+  padding:9px 13px;font-size:.7rem;font-weight:600;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--teal);border-bottom:1px solid var(--border);
+  background:rgba(0,217,176,0.04);display:flex;align-items:center;justify-content:space-between;
+}
+.sec-title-zoom{font-size:.58rem;opacity:.5;letter-spacing:.08em}
+.sec-img-wrap{background:#050e18;overflow:hidden;min-height:110px;display:flex;align-items:center;justify-content:center}
+.sec-img-wrap img{width:100%;height:auto;display:block;object-fit:cover;pointer-events:none}
+.sec-placeholder{padding:22px 16px;text-align:center;font-size:.74rem;color:rgba(180,204,216,.35);line-height:1.7}
+.sec-placeholder code{display:block;margin-top:6px;color:rgba(0,217,176,.35);font-size:.68rem;word-break:break-all}
+/* PDF desktop hint bar */
+.pdf-desktop-hint{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:7px 16px;background:rgba(0,217,176,0.04);border-bottom:1px solid rgba(0,217,176,.08);
+  font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(0,217,176,.4);
+  flex-shrink:0;
+}
+@media(max-width:640px){.pdf-desktop-hint{display:none}}
+
+/* ── BOM MODAL ── */
+#bom-modal{
+  position:fixed;inset:0;z-index:300;
+  display:none;flex-direction:column;
+  background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  padding-top:54px;
+}
+#bom-modal.open{display:flex}
+#bom-c{
+  flex:1;display:flex;flex-direction:column;min-height:0;
+  max-width:900px;width:100%;margin:0 auto;
+  background:var(--panel);border:1px solid var(--border-a);
+  border-top:none;overflow:hidden;
+}
+#bom-h{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-bottom:1px solid var(--border-a);flex-shrink:0;
+  gap:12px;flex-wrap:wrap;
+}
+#bom-title{font-family:'Black Ops One',serif;font-size:.88rem;color:var(--amber);letter-spacing:.08em}
+#bom-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#bom-import-label{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px;background:var(--amber-dim);border:1px solid var(--border-a);border-radius:3px;
+  color:var(--amber);font-family:'Rajdhani',sans-serif;font-size:.76rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;
+}
+#bom-import-label:hover{background:rgba(255,140,42,0.28);border-color:var(--amber);box-shadow:var(--glow-a)}
+#bom-import-input{display:none}
+#bom-clear{
+  background:rgba(255,64,64,0.1);border:1px solid rgba(255,64,64,0.25);border-radius:3px;
+  color:rgba(255,100,100,0.7);font-family:'Rajdhani',sans-serif;font-size:.76rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:7px 12px;
+  transition:all .2s;display:none;
+}
+#bom-clear:hover{background:rgba(255,64,64,0.2);color:var(--red)}
+#bom-close{
+  background:none;border:none;color:var(--text-dim);font-size:1.5rem;
+  cursor:pointer;transition:color .2s;line-height:1;padding:4px 8px;margin-left:auto;
+  -webkit-tap-highlight-color:transparent;
+}
+#bom-close:hover{color:var(--amber)}
+#bom-body{
+  flex:1;min-height:0;overflow-y:auto;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+}
+/* BOM placeholder state */
+#bom-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;height:100%;text-align:center;padding:32px;
+}
+#bom-placeholder svg{opacity:.25}
+#bom-placeholder h3{font-family:'Black Ops One',serif;font-size:1rem;color:var(--amber);opacity:.6}
+#bom-placeholder p{font-size:.83rem;color:var(--text-dim);line-height:1.65;max-width:320px}
+#bom-placeholder code{
+  display:inline-block;background:rgba(255,140,42,0.08);border:1px solid var(--border-a);
+  border-radius:3px;padding:2px 7px;color:var(--amber);font-size:.75rem;letter-spacing:.05em;
+}
+/* BOM table */
+#bom-table-wrap{display:none;min-width:600px}
+.bom-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.bom-table thead tr{
+  background:rgba(255,140,42,0.07);
+  border-bottom:1px solid var(--border-a);
+}
+.bom-table th{
+  padding:10px 14px;text-align:left;font-family:'Rajdhani',sans-serif;
+  font-size:.66rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--amber);white-space:nowrap;
+}
+.bom-table td{
+  padding:9px 14px;color:var(--text);border-bottom:1px solid rgba(255,140,42,0.07);
+  vertical-align:middle;
+}
+.bom-table tbody tr:hover{background:rgba(255,140,42,0.04)}
+.bom-table tbody tr:last-child td{border-bottom:none}
+.bom-badge{
+  display:inline-block;padding:2px 8px;border-radius:2px;font-size:.65rem;
+  font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+}
+.bom-badge.ok{background:rgba(0,217,176,0.1);color:var(--teal);border:1px solid rgba(0,217,176,0.2)}
+.bom-badge.warn{background:rgba(255,140,42,0.1);color:var(--amber);border:1px solid rgba(255,140,42,0.2)}
+#bom-summary{
+  margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;
+}
+.bom-stat{
+  background:rgba(255,140,42,0.05);border:1px solid var(--border-a);
+  border-radius:4px;padding:9px 14px;
+}
+.bom-stat .bs-l{font-size:.59rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px}
+.bom-stat .bs-v{font-family:'Black Ops One',serif;font-size:.88rem;color:var(--amber)}
+
+/* ── PAN-ZOOM VIEWER ── */
+#pz-viewer{
+  position:fixed;inset:0;z-index:500;
+  display:none;flex-direction:column;
+  background:#030508;
+}
+#pz-viewer.open{display:flex}
+#pz-topbar{
+  position:absolute;top:0;left:0;right:0;height:52px;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;gap:12px;
+  background:linear-gradient(to bottom,rgba(3,5,8,.97) 60%,transparent);
+  pointer-events:none;
+}
+#pz-topbar > *{pointer-events:auto}
+#pz-title{
+  font-family:'Black Ops One',serif;font-size:.85rem;
+  color:var(--teal);letter-spacing:.08em;flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#pz-controls{display:flex;gap:6px;align-items:center}
+.pz-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:4px;
+  background:rgba(7,9,15,0.8);border:1px solid rgba(0,217,176,.2);
+  color:rgba(0,217,176,.7);cursor:pointer;transition:all .18s;font-size:1rem;
+  -webkit-tap-highlight-color:transparent;
+}
+.pz-btn:hover{background:rgba(0,217,176,.15);color:var(--teal);border-color:var(--teal)}
+.pz-close-btn{
+  background:rgba(7,9,15,0.8);border:1px solid rgba(255,140,42,.2);
+  color:rgba(255,140,42,.7);
+}
+.pz-close-btn:hover{background:rgba(255,140,42,.15);color:var(--amber);border-color:var(--amber)}
+#pz-stage{
+  flex:1;position:relative;overflow:hidden;
+  cursor:grab;touch-action:none;
+  display:flex;align-items:center;justify-content:center;
+}
+#pz-stage.dragging{cursor:grabbing}
+#pz-content{
+  position:absolute;top:0;left:0;
+  transform-origin:0 0;
+  will-change:transform;
+}
+#pz-img{
+  display:block;max-width:none;
+  user-select:none;-webkit-user-drag:none;pointer-events:none;
+}
+#pz-zoom-bar{
+  position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;
+  background:rgba(3,5,8,.8);border:1px solid rgba(0,217,176,.15);
+  border-radius:20px;padding:6px 14px;z-index:2;pointer-events:none;
+}
+#pz-zoom-val{
+  font-family:'Black Ops One',serif;font-size:.72rem;
+  color:rgba(0,217,176,.55);letter-spacing:.1em;min-width:42px;text-align:center;
+}
+#pz-hint-bar{
+  position:absolute;bottom:56px;left:50%;transform:translateX(-50%);
+  font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(180,204,216,.22);pointer-events:none;white-space:nowrap;
+  animation:fadeHint 4s forwards;
+}
+@keyframes fadeHint{0%,60%{opacity:1}100%{opacity:0}}
+@media(max-width:640px){#pz-hint-bar{display:none}}
+
+/* Updated BOM - no import button visible to users */
+#bom-import-label, #bom-import-input, #bom-clear, #bom-placeholder{display:none!important}
+#bom-table-wrap{display:block!important;min-width:0}
+#bom-body{padding:0}
+#bom-filter-bar{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;border-bottom:1px solid rgba(255,140,42,.1);
+  flex-shrink:0;flex-wrap:wrap;
+}
+.bom-filter-chip{
+  padding:5px 12px;background:rgba(255,140,42,.06);
+  border:1px solid rgba(255,140,42,.15);border-radius:20px;
+  color:rgba(255,140,42,.55);font-family:'Rajdhani',sans-serif;
+  font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;
+}
+.bom-filter-chip.on{background:rgba(255,140,42,.18);border-color:var(--amber);color:var(--amber)}
+.bom-filter-chip:hover{color:var(--amber)}
+#bom-scroll{
+  flex:1;min-height:0;overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 16px;
+}
+#bom-summary{margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap}
+body.hov{cursor:pointer!important}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div id="nav-brand">
+    <div id="nav-title">⚡ CAÑÓN DE GAUSS</div>
+    <div id="nav-sub">Demo interactiva · Sistema de dos etapas</div>
+  </div>
+  <div id="nav-btns">
+    <button class="nbtn" onclick="openModal('full')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Esquemático Completo</span>
+    </button>
+    <button class="nbtn" onclick="openModal('sec')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Por Sectores</span>
+    </button>
+    <button class="nbtn nbtn-amber" onclick="openBOM()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      <span>BOM</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE BOTTOM NAV -->
+<div id="mobile-nav">
+  <div class="mnav-grid">
+    <button class="mnbtn" onclick="openModal('full')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+      <span>Esquemático</span>
+    </button>
+    <button class="mnbtn" onclick="openModal('sec')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Sectores</span>
+    </button>
+    <button class="mnbtn amber" onclick="openBOM()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      <span>BOM</span>
+    </button>
+  </div>
+</div>
+
+<!-- HINT -->
+<div id="hint">
+  <div id="hint-inner">
+    <div class="hdot"></div>
+    Toca un componente para inspeccionarlo · Arrastra para rotar · Pellizca para zoom
+    <div class="hdot" style="animation-delay:.7s"></div>
+  </div>
+</div>
+<div id="counter">0 / 10 PARTES</div>
+<div id="tip"></div>
+
+<!-- INFO PANEL -->
+<div id="panel">
+  <div class="drag-bar"></div>
+  <button id="close-panel" onclick="closePanel()">✕</button>
+  <div class="pi">
+    <div class="p-cat" id="p-cat">Componente</div>
+    <div class="p-name" id="p-name">—</div>
+    <div class="p-id" id="p-id">—</div>
+    <div class="p-div"></div>
+    <div class="p-desc" id="p-desc">—</div>
+    <div class="p-stats" id="p-stats"></div>
+    <div class="sch-sec" id="sch-sec" style="display:none">
+      <div class="sch-lbl">Esquemático del módulo</div>
+      <div class="sch-thumb" id="sch-thumb">
+        <img id="sch-img" src="" alt="Esquemático">
+        <div class="sch-zh">🔍 Zoom</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEMATIC MODAL -->
+<div id="sch-modal">
+  <div id="smc">
+    <div id="smh">
+      <div id="smt">Esquemático del Circuito</div>
+      <button id="smclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('full',this)">Circuito Completo</button>
+      <button class="tab" onclick="switchTab('sec',this)">Por Sectores</button>
+    </div>
+    <div id="tpane-full" class="tpane on">
+      <div class="pdf-desktop-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        Rueda del ratón para zoom · Click y arrastra para mover
+      </div>
+      <div class="pdf-wrap">
+        <iframe id="pdf-frame" src="esquemas/esquematico_completo.pdf" title="Esquemático completo"></iframe>
+        <div class="pdf-mobile-bar">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--teal);opacity:.35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          <p>Los visores de PDF integrados no siempre funcionan en móvil.<br>Ábrelo directamente para verlo con zoom completo.</p>
+          <a class="pdf-link" href="esquemas/esquematico_completo.pdf" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Abrir PDF
+          </a>
+        </div>
+      </div>
+    </div>
+    <div id="tpane-sec" class="tpane">
+      <div class="sec-grid" id="sec-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAN-ZOOM VIEWER -->
+<div id="pz-viewer">
+  <div id="pz-topbar">
+    <div id="pz-title">Esquemático</div>
+    <div id="pz-controls">
+      <button class="pz-btn" onclick="pzZoomBtn(1.3)" title="Acercar">+</button>
+      <button class="pz-btn" onclick="pzZoomBtn(0.77)" title="Alejar">−</button>
+      <button class="pz-btn" onclick="pzFit()" title="Ajustar" style="font-size:.75rem;letter-spacing:.05em;width:auto;padding:0 10px;font-family:'Rajdhani',sans-serif;font-weight:700">FIT</button>
+      <button class="pz-btn pz-close-btn" onclick="closePZ()" title="Cerrar">✕</button>
+    </div>
+  </div>
+  <div id="pz-stage">
+    <div id="pz-content">
+      <img id="pz-img" src="" alt="Esquemático">
+    </div>
+    <div id="pz-zoom-bar">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.5;color:var(--teal)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span id="pz-zoom-val">100%</span>
+    </div>
+    <div id="pz-hint-bar">Arrastra · Pellizca para zoom · Doble toque para ajustar</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- BOM MODAL -->
+<div id="bom-modal">
+  <div id="bom-c">
+    <div id="bom-h">
+      <div id="bom-title">📋 Bill of Materials · Cañón de Gauss</div>
+      <div id="bom-actions"></div>
+      <button id="bom-close" onclick="closeBOM()">✕</button>
+    </div>
+    <div id="bom-filter-bar"></div>
+    <div id="bom-scroll">
+      <div id="bom-summary"></div>
+      <div id="bom-table-wrap">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table class="bom-table" id="bom-table">
+            <thead id="bom-thead"></thead>
+            <tbody id="bom-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SECTOR IMAGES CONFIG
+// ── Coloca tus imágenes en la carpeta "esquemas/" ──
+// Formatos soportados: PNG, JPG, SVG
+// ═══════════════════════════════════════════════════════════════
+const SECTORS = [
+  { id:'control',  title:'Control Principal',  img:'esquemas/sector_control.png'  },
+  { id:'carga',    title:'Carga HV',            img:'esquemas/sector_carga.png'    },
+  { id:'driver1',  title:'Driver Etapa 1',      img:'esquemas/sector_driver1.png'  },
+  { id:'driver2',  title:'Driver Etapa 2',      img:'esquemas/sector_driver2.png'  },
+];
+
+// Sector image lookup by PCB id (matches PARTS schemImg field)
+const SECTOR_IMG = {
+  pcb1: 'esquemas/sector_control.png',
+  pcb2: 'esquemas/sector_carga.png',
+  pcb3: 'esquemas/sector_driver1.png',
+  pcb4: 'esquemas/sector_driver2.png',
+};
+
+// Build sector grid with images
+const secGrid = document.getElementById('sec-grid');
+SECTORS.forEach(s => {
+  const card = document.createElement('div');
+  card.className = 'sec-card';
+  card.innerHTML = `
+    <div class="sec-title">${s.title}<span class="sec-title-zoom">🔍 zoom</span></div>
+    <div class="sec-img-wrap">
+      <img src="${s.img}" alt="${s.title}" loading="lazy"
+        onerror="this.parentElement.innerHTML='<div class=\\'sec-placeholder\\'>📁 Imagen no encontrada<code>${s.img}</code></div>'">
+    </div>`;
+  card.addEventListener('click', () => openPZ(s.img, s.title));
+  secGrid.appendChild(card);
+});
+// ═══════════════════════════════════════════════════════════════
+// PARTS DATA
+// ═══════════════════════════════════════════════════════════════
+const PARTS = {
+  barrel:{
+    cat:'Mecánica',name:'Cañón / Tubo Guía',id:'MECH-01',
+    desc:'Tubo de acero inoxidable de calibre 8mm que actúa como guía para el proyectil ferromagnético. El diámetro interior está calibrado con tolerancia de ±0.05mm para minimizar la fricción mientras mantiene el proyectil centrado dentro del campo magnético de las bobinas.',
+    stats:[{l:'Material',v:'Acero inox'},{l:'Calibre',v:'8 mm'},{l:'Longitud',v:'~22 cm'},{l:'Tolerancia',v:'±0.05 mm'}]
+  },
+  coil1:{
+    cat:'Electromagnética',name:'Bobina de Etapa 1',id:'COIL-A',
+    desc:'Primera bobina de disparo, fabricada con alambre de cobre esmaltado de 1.2mm enrollado en 4 capas de 35 vueltas cada una. Es la primera en activarse al detectar el proyectil en posición de carga. Su campo magnético acelera el proyectil hacia el centro de la bobina.',
+    stats:[{l:'Alambre',v:'CuEsm 1.2mm'},{l:'Vueltas',v:'140 total'},{l:'Inductancia',v:'~2.8 mH'},{l:'Resistencia',v:'0.6 Ω'}]
+  },
+  coil2:{
+    cat:'Electromagnética',name:'Bobina de Etapa 2',id:'COIL-B',
+    desc:'Segunda bobina de disparo, activada con un retardo de 80-120µs tras la primera. Continúa la aceleración del proyectil que ya tiene velocidad inicial. El uso de dos etapas aumenta la eficiencia energética y la velocidad final del proyectil respecto a un diseño de etapa única.',
+    stats:[{l:'Alambre',v:'CuEsm 1.2mm'},{l:'Vueltas',v:'140 total'},{l:'Inductancia',v:'~2.8 mH'},{l:'Resistencia',v:'0.6 Ω'}]
+  },
+  support:{
+    cat:'Estructura',name:'Soporte del Cañón',id:'STRUC-01',
+    desc:'Estructura fabricada en PLA mediante impresión 3D (FDM). Mantiene el cañón alineado horizontalmente sobre la base de madera y soporta las bobinas en posición. El diseño en U permite la extracción del cañón para mantenimiento sin desmontar las bobinas.',
+    stats:[{l:'Material',v:'PLA 1.75mm'},{l:'Relleno',v:'40%'},{l:'Patrón',v:'Gyroid'},{l:'Peso',v:'~85 g'}]
+  },
+  capBank:{
+    cat:'Almacenamiento',name:'Banco de Capacitores',id:'ELEC-CAP',
+    desc:'Batería de Li-Po de 3S (11.1V / 1000mAh) que actúa como fuente de energía primaria para el circuito de carga. La energía se convierte a alta tensión (300-400V) y almacena en un banco de capacitores electrolíticos de 2200µF antes de cada disparo.',
+    stats:[{l:'Tensión',v:'11.1 V (3S)'},{l:'Capacidad',v:'1000 mAh'},{l:'Descarga',v:'30C max'},{l:'Conector',v:'XT60'}]
+  },
+  pcb1:{
+    cat:'Electrónica · Control',name:'Placa de Control Principal',id:'PCB-01',
+    desc:'Arduino Nano como microcontrolador central del sistema. Gestiona la secuencia de disparo leyendo los sensores ópticos infrarrojos para detectar la posición del proyectil y activando los drivers de cada etapa en el momento óptimo. También controla el circuito de carga y la pantalla LCD.',
+    stats:[{l:'MCU',v:'ATmega328'},{l:'Clock',v:'16 MHz'},{l:'I/O',v:'14 digital'},{l:'ADC',v:'10-bit, 6ch'}],
+    schemImg:'esquemas/sector_control.png', schemTitle:'Control Principal'
+  },
+  pcb2:{
+    cat:'Electrónica · Potencia',name:'Placa de Carga HV',id:'PCB-02',
+    desc:'Módulo elevador de tensión basado en un convertidor flyback controlado por un circuito 555 en modo astable. Convierte los 12V de la batería a 300-400V DC con los que se carga el banco de capacitores. Incluye divisor resistivo para retroalimentar la tensión al ADC del Arduino.',
+    stats:[{l:'Vin',v:'12 V DC'},{l:'Vout',v:'300-400 V'},{l:'Cap. final',v:'2200 µF'},{l:'T. carga',v:'~3 s'}],
+    schemImg:'esquemas/sector_carga.png', schemTitle:'Carga HV'
+  },
+  pcb3:{
+    cat:'Electrónica · Driver',name:'Driver de Etapa 1',id:'PCB-03',
+    desc:'Circuito de disparo para la primera bobina. Un optoacoplador 4N35 aísla la lógica de 5V del Arduino del circuito de alta tensión. La señal de disparo activa un IGBT a través de una resistencia de gate de 10Ω, descargando el banco de capacitores a través de la bobina en microsegundos.',
+    stats:[{l:'Switch',v:'IGBT 600V'},{l:'Corriente',v:'~50 A pico'},{l:'t disparo',v:'<1 µs'},{l:'Aislamiento',v:'4N35 Opto'}],
+    schemImg:'esquemas/sector_driver1.png', schemTitle:'Driver Etapa 1'
+  },
+  pcb4:{
+    cat:'Electrónica · Driver',name:'Driver de Etapa 2',id:'PCB-04',
+    desc:'Circuito de disparo para la segunda bobina, funcionalmente idéntico al Driver de Etapa 1. Se activa con un retardo configurable por software de 80-120 microsegundos respecto al disparo de la etapa 1, calculado para que el proyectil esté en la posición óptima de entrada a la segunda bobina.',
+    stats:[{l:'Switch',v:'IGBT 600V'},{l:'Retardo',v:'80-120 µs'},{l:'Sensor',v:'IR post-et1'},{l:'Control',v:'Arduino'}],
+    schemImg:'esquemas/sector_driver2.png', schemTitle:'Driver Etapa 2'
+  },
+  lcd:{
+    cat:'Interfaz',name:'Display LCD 16×2',id:'UI-01',
+    desc:'Pantalla de cristal líquido HD44780 de 16 columnas por 2 filas con retroiluminación azul. Muestra la tensión del banco de capacitores en tiempo real, el estado del sistema (cargando / listo / disparando) y el contador de disparos acumulados. Conectada al Arduino por bus de 4 bits.',
+    stats:[{l:'Resolución',v:'16×2 chars'},{l:'Interfaz',v:'4-bit HD44780'},{l:'Luz',v:'LED azul'},{l:'Tensión',v:'5V'}]
+  },
+  wiring:{
+    cat:'Conexión',name:'Cableado del Sistema',id:'WIRE-SYS',
+    desc:'Red de conexiones que interconecta todos los módulos. Los cables de señal (lógica 5V) son AWG22 y los cables de potencia (alta tensión) son AWG18 con aislamiento de silicona de 600V. Los conectores de alta tensión están etiquetados en rojo para prevenir conexiones incorrectas.',
+    stats:[{l:'Señal',v:'AWG22'},{l:'Potencia',v:'AWG18 Si'},{l:'Aislamiento',v:'600V'},{l:'Conectores',v:'JST / KF'}]
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════════
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(5, 6, 16);
+camera.lookAt(0, 1, 0);
+
+// Stars
+const starG = new THREE.BufferGeometry();
+const spos = new Float32Array(2400);
+for(let i=0;i<2400;i++) spos[i]=(Math.random()-.5)*300;
+starG.setAttribute('position',new THREE.BufferAttribute(spos,3));
+scene.add(new THREE.Points(starG, new THREE.PointsMaterial({color:0xffffff,size:.12,transparent:true,opacity:.6})));
+
+// Lights
+scene.add(new THREE.AmbientLight(0x1a2240,.7));
+const sun = new THREE.DirectionalLight(0xfff5e8,1.8);
+sun.position.set(12,14,8);sun.castShadow=true;
+sun.shadow.mapSize.width=2048;sun.shadow.mapSize.height=2048;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x2244ff,.25);
+fill.position.set(-10,-4,-8);scene.add(fill);
+const pt1 = new THREE.PointLight(0xff8c2a,.9,18);
+pt1.position.set(-2,4,2);scene.add(pt1);
+const pt2 = new THREE.PointLight(0x00d9b0,.5,20);
+pt2.position.set(4,3,1);scene.add(pt2);
+
+// ═══════════════════════════════════════════════════════════════
+// MATERIALS
+// ═══════════════════════════════════════════════════════════════
+const M = {
+  wood: new THREE.MeshStandardMaterial({color:0x7a4520,roughness:.92,metalness:.02}),
+  woodDark: new THREE.MeshStandardMaterial({color:0x5c3318,roughness:.95,metalness:.02}),
+  steel: new THREE.MeshStandardMaterial({color:0xd0dde8,roughness:.25,metalness:.92}),
+  copper: new THREE.MeshStandardMaterial({color:0xb87333,roughness:.18,metalness:.88,emissive:0x3a1800,emissiveIntensity:.15}),
+  plastic: new THREE.MeshStandardMaterial({color:0x8c9aaa,roughness:.72,metalness:.08}),
+  pcbGreen: new THREE.MeshStandardMaterial({color:0x1b4a20,roughness:.58,metalness:.18}),
+  pcbComp: new THREE.MeshStandardMaterial({color:0x1a1a2a,roughness:.6,metalness:.3}),
+  lcd: new THREE.MeshStandardMaterial({color:0x0a1824,roughness:.4,metalness:.6,emissive:0x0066cc,emissiveIntensity:.6}),
+  lcdFrame: new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.7,metalness:.4}),
+  yellow: new THREE.MeshStandardMaterial({color:0xe8a000,roughness:.45,metalness:.25}),
+  redWire: new THREE.MeshStandardMaterial({color:0xcc2200,roughness:.82,metalness:.1}),
+  blueWire: new THREE.MeshStandardMaterial({color:0x1144cc,roughness:.82,metalness:.1}),
+  blackWire: new THREE.MeshStandardMaterial({color:0x111111,roughness:.85,metalness:.05}),
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MODEL CONSTRUCTION
+// ═══════════════════════════════════════════════════════════════
+const model = new THREE.Group();
+scene.add(model);
+const clickables = [];
+
+function mesh(geo, mat, pos, rot, partId) {
+  const m = new THREE.Mesh(geo, mat.clone());
+  m.position.set(...pos);
+  if(rot) m.rotation.set(...rot);
+  m.castShadow = true; m.receiveShadow = true;
+  if(partId){ m.userData.partId = partId; clickables.push({mesh:m,origMat:m.material,id:partId}); }
+  model.add(m); return m;
+}
+
+function group(partId, builders) {
+  const g = new THREE.Group(); model.add(g);
+  builders.forEach(b => {
+    const m = new THREE.Mesh(b.geo, b.mat.clone());
+    m.position.set(...b.pos);
+    if(b.rot) m.rotation.set(...b.rot);
+    m.castShadow=true; m.receiveShadow=true;
+    m.userData.partId = partId;
+    clickables.push({mesh:m, origMat:m.material, id:partId});
+    g.add(m);
+  });
+  return g;
+}
+
+// ── WOODEN BASE ──
+mesh(new THREE.BoxGeometry(16,0.45,10), M.wood, [0,-0.22,0], null, null);
+mesh(new THREE.BoxGeometry(16,.06,10), M.woodDark, [0,.01,0], null, null);
+// Wood grain lines (visual)
+for(let i=-7;i<7;i+=.8){
+  const gm = new THREE.Mesh(new THREE.BoxGeometry(.04,.07,10),
+    new THREE.MeshStandardMaterial({color:0x5c3010,roughness:.98,metalness:0}));
+  gm.position.set(i,.01,0); model.add(gm);
+}
+
+// ── BARREL ──
+// Main tube along Z axis
+group('barrel',[
+  {geo:new THREE.CylinderGeometry(.22,.22,13,20),mat:M.steel,pos:[0,2.3,0],rot:[Math.PI/2,0,0]},
+  {geo:new THREE.CylinderGeometry(.19,.19,13,16),mat:new THREE.MeshStandardMaterial({color:0x222233,roughness:.5,metalness:.6}),pos:[0,2.3,0],rot:[Math.PI/2,0,0]},
+]);
+// Muzzle cap
+mesh(new THREE.CylinderGeometry(.25,.22,.18,20), M.steel, [0,2.3,-6.5], [Math.PI/2,0,0], 'barrel');
+// Breech end
+mesh(new THREE.CylinderGeometry(.3,.3,.3,20), M.steel, [0,2.3,6.5], [Math.PI/2,0,0], 'barrel');
+
+// ── SUPPORT BRACKETS (3D Printed) ──
+[-4.5, 0, 4.5].forEach((z, i) => {
+  // Left post
+  mesh(new THREE.BoxGeometry(.22,.22,1.8),M.plastic,[-0.52,1.3,z],null,'support');
+  // Right post  
+  mesh(new THREE.BoxGeometry(.22,.22,1.8),M.plastic,[0.52,1.3,z],null,'support');
+  // Top horizontal bar
+  mesh(new THREE.BoxGeometry(1.5,.22,.3),M.plastic,[0,2.18,z],null,'support');
+  // V-cradle parts
+  mesh(new THREE.BoxGeometry(.15,.4,.28),M.plastic,[-0.18,2.0,z],[0,0,-.4],'support');
+  mesh(new THREE.BoxGeometry(.15,.4,.28),M.plastic,[0.18,2.0,z],[0,0,.4],'support');
+  // Base feet
+  mesh(new THREE.BoxGeometry(1.6,.12,.5),M.plastic,[0,0.44,z],null,'support');
+});
+
+// ── COIL 1 (at z=-2.5) ──
+for(let i=0;i<15;i++){
+  const t = new THREE.Mesh(
+    new THREE.TorusGeometry(.42,.065,8,20),
+    M.copper.clone()
+  );
+  t.position.set(0,2.3,-2.5 + (i-7)*.11);
+  t.rotation.y = Math.PI/2;
+  t.castShadow=true; t.userData.partId='coil1';
+  clickables.push({mesh:t, origMat:t.material, id:'coil1'});
+  model.add(t);
+}
+// Coil bobbin
+mesh(new THREE.CylinderGeometry(.26,.26,1.7,20),
+  new THREE.MeshStandardMaterial({color:0x1a0800,roughness:.8,metalness:.1}),
+  [0,2.3,-2.5],[Math.PI/2,0,0],'coil1');
+// Coil flanges
+mesh(new THREE.CylinderGeometry(.52,.52,.06,20),M.plastic,[0,2.3,-3.35],[Math.PI/2,0,0],'coil1');
+mesh(new THREE.CylinderGeometry(.52,.52,.06,20),M.plastic,[0,2.3,-1.65],[Math.PI/2,0,0],'coil1');
+
+// ── COIL 2 (at z=2.5) ──
+for(let i=0;i<15;i++){
+  const t = new THREE.Mesh(
+    new THREE.TorusGeometry(.42,.065,8,20),
+    M.copper.clone()
+  );
+  t.position.set(0,2.3,2.5 + (i-7)*.11);
+  t.rotation.y = Math.PI/2;
+  t.castShadow=true; t.userData.partId='coil2';
+  clickables.push({mesh:t, origMat:t.material, id:'coil2'});
+  model.add(t);
+}
+mesh(new THREE.CylinderGeometry(.26,.26,1.7,20),
+  new THREE.MeshStandardMaterial({color:0x1a0800,roughness:.8,metalness:.1}),
+  [0,2.3,2.5],[Math.PI/2,0,0],'coil2');
+mesh(new THREE.CylinderGeometry(.52,.52,.06,20),M.plastic,[0,2.3,1.65],[Math.PI/2,0,0],'coil2');
+mesh(new THREE.CylinderGeometry(.52,.52,.06,20),M.plastic,[0,2.3,3.35],[Math.PI/2,0,0],'coil2');
+
+// ── CAPACITOR BANK (battery pack) ──
+group('capBank',[
+  {geo:new THREE.BoxGeometry(2.2,1.5,1.6),mat:M.yellow,pos:[-5.5,0.97,-2.5]},
+  {geo:new THREE.BoxGeometry(1.8,.08,1.2),mat:new THREE.MeshStandardMaterial({color:0xcc8800,roughness:.5,metalness:.3}),pos:[-5.5,1.73,-2.5]},
+]);
+// Battery labels/stripes
+mesh(new THREE.BoxGeometry(2.2,.04,0.25),
+  new THREE.MeshStandardMaterial({color:0x111111,roughness:.8}),[-5.5,1.25,-2.5],null,'capBank');
+// Connector
+mesh(new THREE.BoxGeometry(.5,.4,.3),
+  new THREE.MeshStandardMaterial({color:0xdd2200,roughness:.5}),[-5.5,0.92,-1.62],null,'capBank');
+
+// ── PCB 1 - Control ──
+group('pcb1',[
+  {geo:new THREE.BoxGeometry(2.8,.09,2),mat:M.pcbGreen,pos:[4.5,0.45,-2.8]},
+]);
+// Components on PCB1
+[[.5,.54,-3.3],[-.3,.54,-2.4],[.8,.54,-2.4],[-0.6,.54,-3.2]].forEach(p=>{
+  mesh(new THREE.BoxGeometry(.35,.28,.25),M.pcbComp,p,null,'pcb1');
+});
+// IC chip
+mesh(new THREE.BoxGeometry(.9,.32,.7),M.pcbComp,[4.5,.58,-2.8],null,'pcb1');
+// Pin headers
+for(let i=0;i<6;i++){
+  mesh(new THREE.BoxGeometry(.06,.25,.06),
+    new THREE.MeshStandardMaterial({color:0x888888,metalness:.9,roughness:.2}),
+    [3.2+i*.18,.55,-1.9],null,'pcb1');
+}
+
+// ── PCB 2 - Charging ──
+group('pcb2',[
+  {geo:new THREE.BoxGeometry(2.4,.09,1.8),mat:M.pcbGreen,pos:[4.2,0.45,-.2]},
+]);
+// Transformer component
+mesh(new THREE.BoxGeometry(.6,.55,.55),M.pcbComp,[4.2,0.77,-.2],null,'pcb2');
+// Capacitors (tall)
+[[3.5,.78,-.5],[3.5,.78,.1],[4.9,.78,-.5],[4.9,.78,.1]].forEach(p=>{
+  mesh(new THREE.CylinderGeometry(.09,.09,.6,10),M.pcbComp,p,null,'pcb2');
+});
+
+// ── PCB 3 - Driver 1 ──
+group('pcb3',[
+  {geo:new THREE.BoxGeometry(2,.09,1.6),mat:M.pcbGreen,pos:[4.1,0.45,2.1]},
+]);
+mesh(new THREE.BoxGeometry(.35,.35,.35),M.pcbComp,[4.1,.69,2.1],null,'pcb3');
+[[3.3,.58,1.6],[3.3,.58,2.1],[3.3,.58,2.6],[4.9,.58,1.8],[4.9,.58,2.4]].forEach(p=>{
+  mesh(new THREE.BoxGeometry(.2,.22,.18),M.pcbComp,p,null,'pcb3');
+});
+// IGBT (tall component)
+mesh(new THREE.BoxGeometry(.22,.5,.35),
+  new THREE.MeshStandardMaterial({color:0x0a0a0a,roughness:.6,metalness:.5}),[4.6,.69,2.1],null,'pcb3');
+
+// ── PCB 4 - Driver 2 ──
+group('pcb4',[
+  {geo:new THREE.BoxGeometry(2,.09,1.6),mat:M.pcbGreen,pos:[4.1,0.45,3.9]},
+]);
+mesh(new THREE.BoxGeometry(.35,.35,.35),M.pcbComp,[4.1,.69,3.9],null,'pcb4');
+[[3.3,.58,3.4],[3.3,.58,3.9],[3.3,.58,4.4],[4.9,.58,3.6],[4.9,.58,4.2]].forEach(p=>{
+  mesh(new THREE.BoxGeometry(.2,.22,.18),M.pcbComp,p,null,'pcb4');
+});
+mesh(new THREE.BoxGeometry(.22,.5,.35),
+  new THREE.MeshStandardMaterial({color:0x0a0a0a,roughness:.6,metalness:.5}),[4.6,.69,3.9],null,'pcb4');
+
+// ── LCD ──
+group('lcd',[
+  {geo:new THREE.BoxGeometry(2.8,.12,1.1),mat:M.lcdFrame,pos:[6.2,1.42,0.4]},
+  {geo:new THREE.BoxGeometry(2.4,.06,.8),mat:M.lcd,pos:[6.2,1.49,0.4]},
+]);
+// Pixel lines on LCD
+for(let r=0;r<2;r++) for(let c=0;c<8;c++){
+  mesh(new THREE.BoxGeometry(.19,.03,.08),
+    new THREE.MeshStandardMaterial({color:0x003388,emissive:0x001166,emissiveIntensity:.8}),
+    [5.2+c*.27,1.52,-0.03+r*.25],null,'lcd');
+}
+// LCD connector
+mesh(new THREE.BoxGeometry(2.6,.15,.2),
+  new THREE.MeshStandardMaterial({color:0x111111,roughness:.7}),[6.2,1.38,.96],null,'lcd');
+
+// ── WIRING ──
+function makeWire(pts, mat) {
+  const curve = new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+  const geo = new THREE.TubeGeometry(curve,24,.038,6,false);
+  const m = new THREE.Mesh(geo,mat.clone());
+  m.castShadow=true; m.userData.partId='wiring';
+  clickables.push({mesh:m,origMat:m.material,id:'wiring'});
+  model.add(m);
+}
+// Red power wires
+makeWire([[-5.5,.97,-1.62],[-5.5,1.8,-1.2],[3.5,1.8,-1.2],[3.5,.5,-2.8]],M.redWire);
+makeWire([[-5.5,1.0,-1.62],[-5.5,2.2,-1],[2.5,2.2,-0.8],[3.2,.5,-0.2]],M.redWire);
+// Blue ground wires
+makeWire([[4.5,.5,-1.9],[4.5,.5,-1],[4.5,.5,.7],[4.5,.5,2.9]],M.blueWire);
+// Black coil wires
+makeWire([[0,1.65,-1.65],[0.5,1.6,-1.2],[4,1.6,-0.6],[4.1,.5,-0.2]],M.blackWire);
+makeWire([[0,1.65,3.35],[0.5,1.6,3.8],[4,1.6,3.2],[4.1,.5,3.9]],M.blackWire);
+
+// Sensor cables
+makeWire([[0,2.08,-2.5],[0.8,1.8,-1.8],[4.2,1.8,-0.5],[4.2,.5,-2.8]],
+  new THREE.MeshStandardMaterial({color:0xffee00,roughness:.8}));
+makeWire([[0,2.08,2.5],[0.8,1.8,3.2],[4.2,1.8,3.8],[4.2,.5,3.9]],
+  new THREE.MeshStandardMaterial({color:0xffee00,roughness:.8}));
+
+// LCD cable ribbon
+makeWire([[6.2,1.38,.96],[6.2,1.2,1.5],[4.5,1.2,2.5],[4.5,.5,-2.8]],
+  new THREE.MeshStandardMaterial({color:0x888888,roughness:.8}));
+
+// ── OPTICAL SENSORS (small parts near barrel) ──
+[-2.5, 2.5].forEach((z,i) => {
+  mesh(new THREE.BoxGeometry(.5,.3,.15),
+    new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.6}),
+    [0.5,2.08,z],null,i===0?'pcb3':'pcb4');
+  // IR LED dot (emissive)
+  mesh(new THREE.SphereGeometry(.05,6,6),
+    new THREE.MeshStandardMaterial({color:0xff3300,emissive:0xff1100,emissiveIntensity:2}),
+    [0.56,2.08,z-0.1],null,i===0?'pcb3':'pcb4');
+});
+
+// Model initial rotation
+model.rotation.y = .3;
+model.position.y = -0.6;
+
+// ═══════════════════════════════════════════════════════════════
+// HIGHLIGHT / INTERACTION
+// ═══════════════════════════════════════════════════════════════
+const highlightMat = new THREE.MeshStandardMaterial({
+  color:0x00d9b0,roughness:.25,metalness:.5,emissive:0x00d9b0,emissiveIntensity:.35
+});
+
+let selectedId = null, hoveredId = null;
+const seen = new Set();
+
+function setHighlight(id, on) {
+  clickables.forEach(c => {
+    if(c.id === id) {
+      if(on){
+        const hm = highlightMat.clone();
+        hm.color.set(c.id.startsWith('pcb') ? 0x00d9b0 : 0xff8c2a);
+        hm.emissive.set(c.id.startsWith('pcb') ? 0x00d9b0 : 0xff8c2a);
+        hm.emissiveIntensity = .3;
+        c.mesh.material = hm;
+      } else {
+        c.mesh.material = c.origMat;
+      }
+    }
+  });
+}
+
+function openPanel(id) {
+  if(selectedId && selectedId !== id) setHighlight(selectedId, false);
+  selectedId = id;
+  setHighlight(id, true);
+  seen.add(id);
+  document.getElementById('counter').textContent = `${seen.size} / 10 PARTES`;
+
+  const d = PARTS[id];
+  document.getElementById('p-cat').textContent = d.cat;
+  document.getElementById('p-name').textContent = d.name;
+  document.getElementById('p-id').textContent = d.id;
+  document.getElementById('p-desc').textContent = d.desc;
+
+  const statsEl = document.getElementById('p-stats');
+  statsEl.innerHTML = d.stats.map(s=>
+    `<div class="sbox"><div class="slbl">${s.l}</div><div class="sval">${s.v}</div></div>`
+  ).join('');
+
+  const schSec = document.getElementById('sch-sec');
+  const schImg = document.getElementById('sch-img');
+  const schThumb = document.getElementById('sch-thumb');
+  if(d.schemImg) {
+    schSec.style.display = 'block';
+    schImg.src = d.schemImg;
+    schThumb.onclick = () => openPZ(d.schemImg, d.schemTitle || d.name);
+    currentSchemId = d.schemImg;
+  } else {
+    schSec.style.display = 'none';
+    currentSchemId = null;
+  }
+
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('hint').style.opacity = '0';
+}
+
+function closePanel() {
+  if(selectedId) setHighlight(selectedId, false);
+  selectedId = null;
+  document.getElementById('panel').classList.remove('open');
+}
+window.closePanel = closePanel;
+
+// ═══════════════════════════════════════════════════════════════
+// RAYCASTER
+// ═══════════════════════════════════════════════════════════════
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let currentSchemId = null;
+
+function updateMouse(x, y) {
+  mouse.x = (x/innerWidth)*2-1;
+  mouse.y = -(y/innerHeight)*2+1;
+}
+
+function doRaycast() {
+  ray.setFromCamera(mouse, camera);
+  return ray.intersectObjects(clickables.map(c=>c.mesh));
+}
+
+// Mouse move
+window.addEventListener('mousemove', e => {
+  updateMouse(e.clientX, e.clientY);
+  const hits = doRaycast();
+  const hid = hits.length ? hits[0].object.userData.partId : null;
+
+  if(hid !== hoveredId) {
+    if(hoveredId && hoveredId !== selectedId) setHighlight(hoveredId, false);
+    hoveredId = hid;
+    if(hoveredId && hoveredId !== selectedId) setHighlight(hoveredId, true);
+    document.body.classList.toggle('hov', !!hoveredId);
+  }
+
+  if(hid) {
+    tip.style.left = (e.clientX+16)+'px';
+    tip.style.top = (e.clientY-8)+'px';
+    tip.textContent = PARTS[hid]?.name || hid;
+    tip.style.opacity = '1';
+  } else {
+    tip.style.opacity = '0';
+  }
+});
+
+// Click
+window.addEventListener('click', e => {
+  // Ignore if clicking UI
+  if(e.target !== renderer.domElement) return;
+  updateMouse(e.clientX, e.clientY);
+  const hits = doRaycast();
+  if(hits.length) {
+    const id = hits[0].object.userData.partId;
+    if(id) { id===selectedId ? closePanel() : openPanel(id); }
+  } else {
+    closePanel();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DRAG TO ROTATE
+// ═══════════════════════════════════════════════════════════════
+let drag = false, px = 0, py = 0, dragDist = 0;
+
+window.addEventListener('mousedown', e => {
+  if(e.target!==renderer.domElement) return;
+  drag=true; px=e.clientX; py=e.clientY; dragDist=0;
+});
+window.addEventListener('mouseup', () => drag=false);
+window.addEventListener('mousemove', e => {
+  if(!drag) return;
+  const dx=e.clientX-px, dy=e.clientY-py;
+  dragDist += Math.abs(dx)+Math.abs(dy);
+  model.rotation.y += dx*.007;
+  model.rotation.x = Math.max(-1,Math.min(.6,model.rotation.x+dy*.004));
+  px=e.clientX; py=e.clientY;
+});
+
+// Scroll zoom
+window.addEventListener('wheel', e=>{
+  camera.position.multiplyScalar(1+e.deltaY*.001);
+  camera.position.clampLength(5,35);
+},{passive:true});
+
+// ═══════════════════════════════════════════════════════════════
+// TOUCH CONTROLS
+// ═══════════════════════════════════════════════════════════════
+let touches = {}, pinchDist = 0, touchDrag = false, touchMoved = false;
+let tpx = 0, tpy = 0, touchTime = 0;
+
+window.addEventListener('touchstart', e => {
+  e.preventDefault();
+  touchMoved = false; touchTime = Date.now();
+  if(e.touches.length === 1) {
+    tpx = e.touches[0].clientX; tpy = e.touches[0].clientY; touchDrag=true;
+  } else if(e.touches.length === 2) {
+    pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+},{passive:false});
+
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  touchMoved = true;
+  if(e.touches.length === 1 && touchDrag) {
+    const dx=e.touches[0].clientX-tpx, dy=e.touches[0].clientY-tpy;
+    model.rotation.y += dx*.007;
+    model.rotation.x = Math.max(-1,Math.min(.6,model.rotation.x+dy*.004));
+    tpx=e.touches[0].clientX; tpy=e.touches[0].clientY;
+  } else if(e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX-e.touches[1].clientX,
+      e.touches[0].clientY-e.touches[1].clientY
+    );
+    camera.position.multiplyScalar(pinchDist/d);
+    camera.position.clampLength(5,35);
+    pinchDist=d;
+  }
+},{passive:false});
+
+window.addEventListener('touchend', e => {
+  touchDrag=false;
+  if(!touchMoved && Date.now()-touchTime < 300 && e.changedTouches.length===1) {
+    const t = e.changedTouches[0];
+    updateMouse(t.clientX, t.clientY);
+    const hits = doRaycast();
+    if(hits.length){
+      const id=hits[0].object.userData.partId;
+      if(id){ id===selectedId?closePanel():openPanel(id); }
+    } else {
+      closePanel();
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PAN-ZOOM VIEWER
+// ═══════════════════════════════════════════════════════════════
+const pz = { scale:1, tx:0, ty:0, dragging:false, lx:0, ly:0, pinchDist:0 };
+
+function openPZ(src, title) {
+  const img = document.getElementById('pz-img');
+  document.getElementById('pz-title').textContent = title || 'Esquemático';
+  document.getElementById('pz-viewer').classList.add('open');
+  img.src = src;
+  if(img.complete && img.naturalWidth) { pzFit(); }
+  else { img.onload = pzFit; }
+  // Refresh hint animation
+  const h = document.getElementById('pz-hint-bar');
+  h.style.animation='none'; void h.offsetWidth;
+  h.style.animation='fadeHint 4s forwards';
+}
+window.openPZ = openPZ;
+
+function closePZ() {
+  document.getElementById('pz-viewer').classList.remove('open');
+}
+window.closePZ = closePZ;
+
+function pzFit() {
+  const stage = document.getElementById('pz-stage');
+  const img = document.getElementById('pz-img');
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  const iw = img.naturalWidth || 800, ih = img.naturalHeight || 600;
+  const s = Math.min(sw/iw, sh/ih) * 0.92;
+  pz.scale = s;
+  pz.tx = (sw - iw*s) / 2;
+  pz.ty = (sh - ih*s) / 2;
+  pzApply();
+}
+window.pzFit = pzFit;
+
+function pzApply() {
+  document.getElementById('pz-content').style.transform =
+    `translate(${pz.tx}px,${pz.ty}px) scale(${pz.scale})`;
+  document.getElementById('pz-zoom-val').textContent = Math.round(pz.scale*100)+'%';
+}
+
+function pzZoomAt(factor, cx, cy) {
+  const stage = document.getElementById('pz-stage');
+  const rect = stage.getBoundingClientRect();
+  const ox = cx - rect.left, oy = cy - rect.top;
+  const ns = Math.max(0.08, Math.min(12, pz.scale * factor));
+  pz.tx = ox - (ox - pz.tx) * ns / pz.scale;
+  pz.ty = oy - (oy - pz.ty) * ns / pz.scale;
+  pz.scale = ns;
+  pzApply();
+}
+
+function pzZoomBtn(f) {
+  const stage = document.getElementById('pz-stage');
+  pzZoomAt(f, stage.clientWidth/2 + stage.getBoundingClientRect().left,
+              stage.clientHeight/2 + stage.getBoundingClientRect().top);
+}
+window.pzZoomBtn = pzZoomBtn;
+
+// Mouse
+const pzStage = document.getElementById('pz-stage');
+pzStage.addEventListener('wheel', e => {
+  e.preventDefault();
+  pzZoomAt(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY);
+},{passive:false});
+
+pzStage.addEventListener('mousedown', e => {
+  if(e.button!==0) return;
+  e.preventDefault();
+  pz.dragging=true; pz.lx=e.clientX; pz.ly=e.clientY;
+  pzStage.classList.add('dragging');
+});
+window.addEventListener('mousemove', e => {
+  if(!pz.dragging) return;
+  pz.tx += e.clientX-pz.lx; pz.ty += e.clientY-pz.ly;
+  pz.lx=e.clientX; pz.ly=e.clientY;
+  pzApply();
+});
+window.addEventListener('mouseup', () => {
+  pz.dragging=false; pzStage.classList.remove('dragging');
+});
+pzStage.addEventListener('dblclick', pzFit);
+
+// Touch
+let pzTouches = {}, pzLastTap = 0;
+pzStage.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if(e.touches.length===1) {
+    pz.dragging=true; pz.lx=e.touches[0].clientX; pz.ly=e.touches[0].clientY;
+    // Double tap
+    const now=Date.now();
+    if(now-pzLastTap<300){ pzFit(); } pzLastTap=now;
+  } else if(e.touches.length===2) {
+    pz.dragging=false;
+    pz.pinchDist = Math.hypot(
+      e.touches[0].clientX-e.touches[1].clientX,
+      e.touches[0].clientY-e.touches[1].clientY);
+  }
+},{passive:false});
+
+pzStage.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if(e.touches.length===1 && pz.dragging) {
+    pz.tx += e.touches[0].clientX-pz.lx;
+    pz.ty += e.touches[0].clientY-pz.ly;
+    pz.lx=e.touches[0].clientX; pz.ly=e.touches[0].clientY;
+    pzApply();
+  } else if(e.touches.length===2) {
+    const d = Math.hypot(
+      e.touches[0].clientX-e.touches[1].clientX,
+      e.touches[0].clientY-e.touches[1].clientY);
+    const mx = (e.touches[0].clientX+e.touches[1].clientX)/2;
+    const my = (e.touches[0].clientY+e.touches[1].clientY)/2;
+    if(pz.pinchDist) pzZoomAt(d/pz.pinchDist, mx, my);
+    pz.pinchDist=d;
+  }
+},{passive:false});
+
+pzStage.addEventListener('touchend', e => {
+  if(e.touches.length===0) pz.dragging=false;
+  if(e.touches.length<2) pz.pinchDist=0;
+});
+
+// ═══════════════════════════════════════════════════════════════
+// BOM — DATOS PRECARGADOS
+// ── Modifica BOM_DATA para actualizar la tabla ──
+// ═══════════════════════════════════════════════════════════════
+const BOM_DATA = [
+  // Control
+  {ref:'U1',   qty:1, value:'Arduino Nano',       desc:'Microcontrolador ATmega328P 16MHz',        pkg:'DIP-30',     cat:'Control'},
+  {ref:'U2',   qty:1, value:'NE555',              desc:'Temporizador PWM driver flyback',          pkg:'DIP-8',      cat:'Control'},
+  {ref:'U3,U4',qty:2, value:'Optoacoplador 4N35', desc:'Aislamiento galvánico MCU / alta tensión', pkg:'DIP-6',      cat:'Control'},
+  {ref:'BTN1', qty:1, value:'Pulsador NO',         desc:'Botón de disparo normalmente abierto',     pkg:'THT',        cat:'Control'},
+  // Potencia
+  {ref:'Q1',   qty:1, value:'MOSFET IRF3205',     desc:'N-Ch 55V 110A, switching flyback',         pkg:'TO-220',     cat:'Potencia'},
+  {ref:'Q2,Q3',qty:2, value:'IGBT FGA25N120',     desc:'N-Ch 1200V 25A, conmutación bobinas',      pkg:'TO-247',     cat:'Potencia'},
+  {ref:'T1',   qty:1, value:'Transformador Flyback', desc:'Elevador 12V → 300-400V',                pkg:'THT',        cat:'Potencia'},
+  {ref:'D1',   qty:1, value:'1N4007',             desc:'Diodo rectificador HV 1000V 1A',           pkg:'DO-41',      cat:'Potencia'},
+  {ref:'D2,D3',qty:2, value:'1N4148',             desc:'Diodo de rueda libre bobinas',             pkg:'DO-35',      cat:'Potencia'},
+  // Almacenamiento
+  {ref:'C1,C2',qty:2, value:'2200µF 400V',        desc:'Condensador electrolítico banco HV',       pkg:'Radial Ø35', cat:'Almacenamiento'},
+  {ref:'BAT1', qty:1, value:'LiPo 3S 1000mAh',   desc:'11.1V 30C descarga, conector XT60',        pkg:'—',          cat:'Almacenamiento'},
+  // Pasivos
+  {ref:'C3',   qty:1, value:'100nF',              desc:'Desacoplo VCC Arduino',                    pkg:'SMD 0805',   cat:'Pasivos'},
+  {ref:'C4,C5',qty:2, value:'10nF',               desc:'Temporización 555',                        pkg:'THT',        cat:'Pasivos'},
+  {ref:'R1,R2',qty:2, value:'10Ω 1W',             desc:'Resistencias de gate IGBT',                pkg:'THT',        cat:'Pasivos'},
+  {ref:'R3,R4',qty:2, value:'1kΩ',                desc:'Pull-down base optoacoplador',             pkg:'THT',        cat:'Pasivos'},
+  {ref:'R5,R6',qty:2, value:'100kΩ',              desc:'Divisor retroalimentación V_FB',           pkg:'THT',        cat:'Pasivos'},
+  // Electromagnética
+  {ref:'L1',   qty:1, value:'Bobina Etapa 1',     desc:'140v Cu esmaltado 1.2mm, 4 capas, ~2.8mH', pkg:'Manual',    cat:'Electromagnética'},
+  {ref:'L2',   qty:1, value:'Bobina Etapa 2',     desc:'140v Cu esmaltado 1.2mm, 4 capas, ~2.8mH', pkg:'Manual',    cat:'Electromagnética'},
+  {ref:'IR1,IR2',qty:2,value:'Sensor TCRT5000',   desc:'IR reflexivo, detección posición proyectil',pkg:'THT',       cat:'Sensores'},
+  {ref:'LCD1', qty:1, value:'LCD 16×2 HD44780',   desc:'Display caracteres, backlight azul',       pkg:'THT',        cat:'Interfaz'},
+  // Mecánica
+  {ref:'BARREL',qty:1,value:'Tubo inox Ø8mm',     desc:'Cañón guía proyectil, L=220mm, tol ±0.05',pkg:'—',         cat:'Mecánica'},
+  {ref:'STRUCT',qty:3,value:'Soporte PLA',         desc:'V-cradle impreso FDM, relleno 40% gyroid', pkg:'FDM',        cat:'Mecánica'},
+  {ref:'BASE',  qty:1,value:'Base madera',         desc:'Tabla 300×200×15mm',                       pkg:'—',          cat:'Mecánica'},
+];
+
+(function renderBOM() {
+  const cats = [...new Set(BOM_DATA.map(r=>r.cat))];
+  const filterBar = document.getElementById('bom-filter-bar');
+  let activeCat = 'Todos';
+
+  function buildChips() {
+    filterBar.innerHTML = ['Todos',...cats].map(c =>
+      `<button class="bom-filter-chip${c===activeCat?' on':''}" onclick="bomFilter('${c}')">${c}</button>`
+    ).join('');
+  }
+
+  window.bomFilter = function(cat) {
+    activeCat = cat;
+    buildChips();
+    const rows = document.querySelectorAll('#bom-tbody tr');
+    rows.forEach(tr => {
+      tr.style.display = (cat==='Todos'||tr.dataset.cat===cat) ? '' : 'none';
+    });
+    document.getElementById('bom-summary').innerHTML = buildSummary(cat);
+  };
+
+  function buildSummary(cat) {
+    const filtered = cat==='Todos' ? BOM_DATA : BOM_DATA.filter(r=>r.cat===cat);
+    const totalQty = filtered.reduce((s,r)=>s+parseInt(r.qty||0),0);
+    return `
+      <div class="bom-stat"><div class="bs-l">Líneas</div><div class="bs-v">${filtered.length}</div></div>
+      <div class="bom-stat"><div class="bs-l">Unidades</div><div class="bs-v">${totalQty}</div></div>
+      <div class="bom-stat"><div class="bs-l">Categorías</div><div class="bs-v">${cats.length}</div></div>`;
+  }
+
+  // Table header
+  document.getElementById('bom-thead').innerHTML =
+    '<tr><th>Ref.</th><th>Cant.</th><th>Valor / Componente</th><th>Descripción</th><th>Package</th><th>Categoría</th></tr>';
+
+  // Table body
+  document.getElementById('bom-tbody').innerHTML = BOM_DATA.map(r => `
+    <tr data-cat="${r.cat}">
+      <td style="font-family:'Black Ops One',serif;font-size:.78rem;color:var(--teal)">${escHtml(r.ref)}</td>
+      <td><span class="bom-badge ok">${escHtml(String(r.qty))}</span></td>
+      <td style="color:#fff;font-weight:600">${escHtml(r.value)}</td>
+      <td>${escHtml(r.desc||'')}</td>
+      <td style="color:var(--text-dim);font-size:.8rem">${escHtml(r.pkg||'')}</td>
+      <td><span class="bom-badge warn" style="font-size:.58rem">${escHtml(r.cat)}</span></td>
+    </tr>`).join('');
+
+  buildChips();
+  document.getElementById('bom-summary').innerHTML = buildSummary('Todos');
+})();
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// ═══════════════════════════════════════════════════════════════
+// MODAL / TABS
+// ═══════════════════════════════════════════════════════════════
+function openBOM() { document.getElementById('bom-modal').classList.add('open'); }
+function closeBOM() { document.getElementById('bom-modal').classList.remove('open'); }
+window.openBOM = openBOM; window.closeBOM = closeBOM;
+
+function openModal(tab) {
+  document.getElementById('sch-modal').classList.add('open');
+  switchTabByName(tab);
+}
+function closeModal() {
+  document.getElementById('sch-modal').classList.remove('open');
+}
+window.openModal = openModal;
+window.closeModal = closeModal;
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tpane').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('tpane-'+name).classList.add('on');
+}
+function switchTabByName(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('on', (name==='full'&&i===0)||(name==='sec'&&i===1));
+  });
+  document.querySelectorAll('.tpane').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tpane-'+name).classList.add('on');
+}
+window.switchTab = switchTab;
+
+// ═══════════════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════════════
+function openLightbox(id) {
+  if(!id || !SCHEMS[id]) return;
+  document.getElementById('lb-wrap').innerHTML = SCHEMS[id];
+  document.getElementById('lb').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lb').classList.remove('open');
+}
+window.openLightbox = openLightbox;
+window.closeLightbox = closeLightbox;
+
+// Keyboard
+window.addEventListener('keydown', e => {
+  if(e.key==='Escape'){
+    closePanel(); closeModal(); closePZ(); closeBOM();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════
+const clock = new THREE.Clock();
+let autoRot = true;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  if(!drag && !touchDrag) {
+    model.rotation.y += .0012;
+  }
+
+  // Copper coil emissive pulse when panel open
+  if(selectedId === 'coil1' || selectedId === 'coil2') {
+    const p = (.5+.5*Math.sin(t*8))*.4;
+    clickables.filter(c=>c.id===selectedId).forEach(c=>{
+      if(c.mesh.material.emissiveIntensity!==undefined)
+        c.mesh.material.emissiveIntensity = p;
+    });
+  }
+
+  // Point light flicker
+  pt1.intensity = .9 + .1*Math.sin(t*1.7);
+  pt2.intensity = .5 + .08*Math.sin(t*2.3+1);
+
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
