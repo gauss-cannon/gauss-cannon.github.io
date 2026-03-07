@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Cañón de Gauss · Demo Interactiva</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Cañón de Gauss</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Black+Ops+One&display=swap');
 
@@ -122,21 +122,56 @@ canvas{display:block;touch-action:none}
 .hdot{width:5px;height:5px;border-radius:50%;background:var(--amber);opacity:.5;animation:dp 2.2s infinite}
 @keyframes dp{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.9;transform:scale(1.4)}}
 
-/* ── COUNTER ── */
+/* ── COUNTER (barra circular) ── */
 #counter{
   position:fixed;bottom:20px;right:18px;
-  font-family:'Black Ops One',serif;font-size:0.65rem;letter-spacing:0.15em;
-  color:rgba(0,217,176,0.3);z-index:10;pointer-events:none;
+  width:60px;height:60px;
+  z-index:10;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.circular-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.circle-bg {
+  stroke: rgba(0,217,176,0.15);
+  stroke-width: 3;
+  fill: none;
+}
+.circle {
+  stroke: var(--teal);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s;
+  filter: drop-shadow(0 0 6px var(--teal));
+}
+#counter-text {
+  position:absolute;
+  font-family:'Black Ops One',serif;
+  font-size:0.9rem;
+  color:var(--teal);
+  text-shadow:0 0 10px var(--teal);
 }
 
-/* ── TOOLTIP ── */
+/* ── TOOLTIP mejorado ── */
 #tip{
   position:fixed;pointer-events:none;z-index:200;
-  background:rgba(7,12,22,0.92);border:1px solid var(--border-a);border-radius:3px;
-  padding:5px 12px;font-family:'Rajdhani',sans-serif;
-  font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--amber);opacity:0;transition:opacity .15s;
-  backdrop-filter:blur(8px);white-space:nowrap;
+  background:rgba(7,12,22,0.95);border:1px solid var(--border-a);border-radius:6px;
+  padding:8px 14px;font-family:'Rajdhani',sans-serif;
+  font-size:0.8rem;font-weight:500;letter-spacing:0.05em;
+  color:var(--amber);opacity:0;transition:opacity .2s;
+  backdrop-filter:blur(10px);white-space:nowrap;
+  box-shadow:0 0 20px rgba(255,140,42,0.2);
+}
+#tip small {
+  display:block;
+  font-size:0.65rem;
+  color:var(--teal);
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  margin-top:2px;
 }
 
 /* ── INFO PANEL ── */
@@ -202,22 +237,42 @@ canvas{display:block;touch-action:none}
 }
 #close-panel:hover{color:var(--amber)}
 
-/* ── SCHEMATIC MODAL ── */
+/* ── SCHEMATIC MODAL (centered con transición) ── */
 #sch-modal{
   position:fixed;inset:0;z-index:300;
-  display:none;flex-direction:column;
-  background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  padding:54px 20px;
+  background:rgba(0,0,0,0.92);
+  backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
-  padding-top:54px;
+  opacity:0;
+  transition:opacity 0.3s ease;
 }
-#sch-modal.open{display:flex}
+#sch-modal.open{
+  display:flex;
+  opacity:1;
+}
+
 #smc{
-  flex:1;display:flex;flex-direction:column;
-  min-height:0; /* critical for flex children to scroll */
-  max-width:980px;width:100%;margin:0 auto;
-  background:var(--panel);border:1px solid var(--border);
-  border-top:none;overflow:hidden;
+  max-width:980px;
+  width:100%;
+  max-height:calc(100vh - 108px);
+  margin:0 auto;
+  background:var(--panel);
+  border:1px solid var(--border);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transform:scale(0.95);
+  transition:transform 0.3s ease;
 }
+#sch-modal.open #smc {
+  transform:scale(1);
+}
+
 #smh{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
@@ -276,19 +331,41 @@ canvas{display:block;touch-action:none}
 .sec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 @media(max-width:480px){.sec-grid{grid-template-columns:1fr}}
 .sec-card{
-  background:rgba(0,217,176,0.03);border:1px solid var(--border);border-radius:4px;
-  overflow:hidden;cursor:zoom-in;transition:border-color .2s,box-shadow .2s;
+  background:rgba(0,217,176,0.03);border:1px solid var(--border);border-radius:8px;
+  overflow:hidden;cursor:zoom-in;transition:all 0.25s;
   -webkit-tap-highlight-color:transparent;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
 }
-.sec-card:hover,.sec-card:active{border-color:var(--teal);box-shadow:var(--glow-t)}
+.sec-card:hover,.sec-card:active{
+  border-color:var(--teal);
+  box-shadow:var(--glow-t), 0 4px 12px rgba(0,217,176,0.2);
+  transform:scale(1.02);
+}
 .sec-title{
   padding:9px 13px;font-size:.7rem;font-weight:600;letter-spacing:.15em;
   text-transform:uppercase;color:var(--teal);border-bottom:1px solid var(--border);
   background:rgba(0,217,176,0.04);display:flex;align-items:center;justify-content:space-between;
 }
 .sec-title-zoom{font-size:.58rem;opacity:.5;letter-spacing:.08em}
-.sec-img-wrap{background:#050e18;overflow:hidden;min-height:110px;display:flex;align-items:center;justify-content:center}
-.sec-img-wrap img{width:100%;height:auto;display:block;object-fit:cover;pointer-events:none}
+.sec-img-wrap{
+  background:#050e18;
+  overflow:hidden;
+  min-height:110px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.sec-img-wrap img{
+  width:100%;
+  height:auto;
+  display:block;
+  object-fit:cover;
+  pointer-events:none;
+  transition:transform 0.3s;
+}
+.sec-card:hover .sec-img-wrap img{
+  transform:scale(1.05);
+}
 .sec-placeholder{padding:22px 16px;text-align:center;font-size:.74rem;color:rgba(180,204,216,.35);line-height:1.7}
 .sec-placeholder code{display:block;margin-top:6px;color:rgba(0,217,176,.35);font-size:.68rem;word-break:break-all}
 /* PDF desktop hint bar */
@@ -300,20 +377,39 @@ canvas{display:block;touch-action:none}
 }
 @media(max-width:640px){.pdf-desktop-hint{display:none}}
 
-/* ── BOM MODAL ── */
+/* ── BOM MODAL (centered con transición) ── */
 #bom-modal{
   position:fixed;inset:0;z-index:300;
-  display:none;flex-direction:column;
-  background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  padding:54px 20px;
+  background:rgba(0,0,0,0.92);
+  backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
-  padding-top:54px;
+  opacity:0;
+  transition:opacity 0.3s ease;
 }
-#bom-modal.open{display:flex}
+#bom-modal.open{
+  display:flex;
+  opacity:1;
+}
 #bom-c{
-  flex:1;display:flex;flex-direction:column;min-height:0;
-  max-width:900px;width:100%;margin:0 auto;
-  background:var(--panel);border:1px solid var(--border-a);
-  border-top:none;overflow:hidden;
+  max-width:900px;
+  width:100%;
+  max-height:calc(100vh - 108px);
+  margin:0 auto;
+  background:var(--panel);
+  border:1px solid var(--border-a);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transform:scale(0.95);
+  transition:transform 0.3s ease;
+}
+#bom-modal.open #bom-c {
+  transform:scale(1);
 }
 #bom-h{
   display:flex;align-items:center;justify-content:space-between;
@@ -360,7 +456,7 @@ canvas{display:block;touch-action:none}
   display:inline-block;background:rgba(255,140,42,0.08);border:1px solid var(--border-a);
   border-radius:3px;padding:2px 7px;color:var(--amber);font-size:.75rem;letter-spacing:.05em;
 }
-/* BOM table */
+/* BOM table - responsive design */
 #bom-table-wrap{display:none;min-width:600px}
 .bom-table{width:100%;border-collapse:collapse;font-size:.82rem}
 .bom-table thead tr{
@@ -378,6 +474,46 @@ canvas{display:block;touch-action:none}
 }
 .bom-table tbody tr:hover{background:rgba(255,140,42,0.04)}
 .bom-table tbody tr:last-child td{border-bottom:none}
+/* Para móvil, convertir filas en bloques */
+@media (max-width:640px) {
+  .bom-table, .bom-table thead, .bom-table tbody, .bom-table tr, .bom-table td {
+    display: block;
+  }
+  .bom-table thead {
+    display: none; /* ocultar cabecera en móvil */
+  }
+  .bom-table tr {
+    margin-bottom: 1rem;
+    background: rgba(255,140,42,0.02);
+    border: 1px solid var(--border-a);
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+  .bom-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.3rem;
+    border-bottom: 1px dashed rgba(255,140,42,0.1);
+  }
+  .bom-table td:last-child {
+    border-bottom: none;
+  }
+  .bom-table td:before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--amber);
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    margin-right: 1rem;
+    white-space: nowrap;
+  }
+  /* Ajustes específicos */
+  .bom-table td[data-label="Ref."] { font-family:'Black Ops One',serif; color:var(--teal); }
+  .bom-table td[data-label="Cant."] .bom-badge { margin-left: auto; }
+  .bom-table td[data-label="Valor"] { color:#fff; font-weight:600; }
+  .bom-table td[data-label="Descripción"] { font-size:0.75rem; }
+}
 .bom-badge{
   display:inline-block;padding:2px 8px;border-radius:2px;font-size:.65rem;
   font-weight:700;letter-spacing:.1em;text-transform:uppercase;
@@ -462,7 +598,7 @@ canvas{display:block;touch-action:none}
 @keyframes fadeHint{0%,60%{opacity:1}100%{opacity:0}}
 @media(max-width:640px){#pz-hint-bar{display:none}}
 
-/* Updated BOM - no import button visible to users */
+/* Updated BOM - no import button visible to users (se mantiene oculto) */
 #bom-import-label, #bom-import-input, #bom-clear, #bom-placeholder{display:none!important}
 #bom-table-wrap{display:block!important;min-width:0}
 #bom-body{padding:0}
@@ -472,13 +608,36 @@ canvas{display:block;touch-action:none}
   flex-shrink:0;flex-wrap:wrap;
 }
 .bom-filter-chip{
-  padding:5px 12px;background:rgba(255,140,42,.06);
-  border:1px solid rgba(255,140,42,.15);border-radius:20px;
-  color:rgba(255,140,42,.55);font-family:'Rajdhani',sans-serif;
-  font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:5px 12px;
+  background:rgba(255,140,42,.06);
+  border:1px solid rgba(255,140,42,.15);
+  border-radius:20px;
+  color:rgba(255,140,42,.55);
+  font-family:'Rajdhani',sans-serif;
+  font-size:.7rem;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .18s;
+  -webkit-tap-highlight-color:transparent;
 }
-.bom-filter-chip.on{background:rgba(255,140,42,.18);border-color:var(--amber);color:var(--amber)}
+.bom-filter-chip svg {
+  width:12px;
+  height:12px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  opacity:0.7;
+}
+.bom-filter-chip.on{
+  background:rgba(255,140,42,.18);
+  border-color:var(--amber);
+  color:var(--amber);
+}
 .bom-filter-chip:hover{color:var(--amber)}
 #bom-scroll{
   flex:1;min-height:0;overflow:auto;
@@ -487,6 +646,32 @@ canvas{display:block;touch-action:none}
 }
 #bom-summary{margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap}
 body.hov{cursor:pointer!important}
+
+/* ── Nuevo estilo para la pestaña BOM dentro del modal de esquemáticos ── */
+#tpane-bom {
+  flex:1;
+  min-height:0;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+}
+#tpane-bom.on { display:flex; }
+#bom-filter-bar-modal {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; border-bottom:1px solid rgba(255,140,42,.1);
+  flex-shrink:0; flex-wrap:wrap;
+}
+#bom-scroll-modal {
+  flex:1; min-height:0; overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 16px;
+}
+#bom-summary-modal {
+  margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;
+}
+#bom-table-wrap-modal {
+  overflow-x:auto;
+}
 </style>
 </head>
 <body>
@@ -495,7 +680,7 @@ body.hov{cursor:pointer!important}
 <nav id="nav">
   <div id="nav-brand">
     <div id="nav-title">⚡ CAÑÓN DE GAUSS</div>
-    <div id="nav-sub">Demo interactiva · Sistema de dos etapas</div>
+    <div id="nav-sub">Sistema de dos etapas</div>
   </div>
   <div id="nav-btns">
     <button class="nbtn" onclick="openModal('full')">
@@ -539,7 +724,17 @@ body.hov{cursor:pointer!important}
     <div class="hdot" style="animation-delay:.7s"></div>
   </div>
 </div>
-<div id="counter">0 / 10 PARTES</div>
+
+<!-- COUNTER circular -->
+<div id="counter">
+  <svg viewBox="0 0 40 40" class="circular-chart">
+    <circle class="circle-bg" cx="20" cy="20" r="16" />
+    <circle class="circle" cx="20" cy="20" r="16" stroke-dasharray="0, 100" style="stroke-dasharray: 0, 100;" id="progress-circle" />
+  </svg>
+  <span id="counter-text">0/10</span>
+</div>
+
+<!-- TOOLTIP mejorado -->
 <div id="tip"></div>
 
 <!-- INFO PANEL -->
@@ -563,7 +758,7 @@ body.hov{cursor:pointer!important}
   </div>
 </div>
 
-<!-- SCHEMATIC MODAL -->
+<!-- SCHEMATIC MODAL (con tres pestañas) -->
 <div id="sch-modal">
   <div id="smc">
     <div id="smh">
@@ -573,6 +768,7 @@ body.hov{cursor:pointer!important}
     <div class="tabs">
       <button class="tab on" onclick="switchTab('full',this)">Circuito Completo</button>
       <button class="tab" onclick="switchTab('sec',this)">Por Sectores</button>
+      <button class="tab" onclick="switchTab('bom',this)">BOM</button>
     </div>
     <div id="tpane-full" class="tpane on">
       <div class="pdf-desktop-hint">
@@ -593,6 +789,19 @@ body.hov{cursor:pointer!important}
     </div>
     <div id="tpane-sec" class="tpane">
       <div class="sec-grid" id="sec-grid"></div>
+    </div>
+    <!-- Pestaña BOM -->
+    <div id="tpane-bom" class="tpane">
+      <div id="bom-filter-bar-modal" class="bom-filter-bar"></div>
+      <div id="bom-scroll-modal">
+        <div id="bom-summary-modal"></div>
+        <div id="bom-table-wrap-modal">
+          <table class="bom-table" id="bom-table-modal">
+            <thead id="bom-thead-modal"></thead>
+            <tbody id="bom-tbody-modal"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -622,7 +831,7 @@ body.hov{cursor:pointer!important}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-<!-- BOM MODAL -->
+<!-- BOM MODAL (independiente) -->
 <div id="bom-modal">
   <div id="bom-c">
     <div id="bom-h">
@@ -651,18 +860,18 @@ body.hov{cursor:pointer!important}
 // Formatos soportados: PNG, JPG, SVG
 // ═══════════════════════════════════════════════════════════════
 const SECTORS = [
-  { id:'control',  title:'Control Principal',  img:'esquemas/sector_control.png'  },
-  { id:'carga',    title:'Carga HV',            img:'esquemas/sector_carga.png'    },
-  { id:'driver1',  title:'Driver Etapa 1',      img:'esquemas/sector_driver1.png'  },
-  { id:'driver2',  title:'Driver Etapa 2',      img:'esquemas/sector_driver2.png'  },
+  { id:'control',  title:'Placa de Filtrado',                     img:'esquemas/sector_control.png'  },
+  { id:'carga',    title:'Placa con Interruptores',               img:'esquemas/sector_carga.png'    },
+  { id:'driver1',  title:'Fuente de Alimentacion 35V',            img:'esquemas/sector_driver1.png'  },
+  { id:'driver2',  title:'Modulo de Aceleracion de Bobina 1 & 2', img:'esquemas/sector_driver2.png'  },
 ];
 
 // Sector image lookup by PCB id (matches PARTS schemImg field)
 const SECTOR_IMG = {
-  pcb1: 'esquemas/sector_control.png',
-  pcb2: 'esquemas/sector_carga.png',
-  pcb3: 'esquemas/sector_driver1.png',
-  pcb4: 'esquemas/sector_driver2.png',
+  pcb1: 'esquemas/Placa de Filtrado.png',
+  pcb2: 'esquemas/Placa con Interruptores.png',
+  pcb3: 'esquemas/Fuente de Alimentacion 35V.png',
+  pcb4: 'esquemas/Modulo de Aceleracion de Bobina.png',
 };
 
 // Build sector grid with images
@@ -1055,7 +1264,7 @@ function openPanel(id) {
   selectedId = id;
   setHighlight(id, true);
   seen.add(id);
-  document.getElementById('counter').textContent = `${seen.size} / 10 PARTES`;
+  updateCounter();
 
   const d = PARTS[id];
   document.getElementById('p-cat').textContent = d.cat;
@@ -1124,9 +1333,10 @@ window.addEventListener('mousemove', e => {
   }
 
   if(hid) {
+    const part = PARTS[hid];
     tip.style.left = (e.clientX+16)+'px';
     tip.style.top = (e.clientY-8)+'px';
-    tip.textContent = PARTS[hid]?.name || hid;
+    tip.innerHTML = part ? `${part.name} <small>${part.cat}</small>` : hid;
     tip.style.opacity = '1';
   } else {
     tip.style.opacity = '0';
@@ -1135,7 +1345,7 @@ window.addEventListener('mousemove', e => {
 
 // Click
 window.addEventListener('click', e => {
-  // Ignore if clicking UI
+  // Ignorar si se hace clic en la UI
   if(e.target !== renderer.domElement) return;
   updateMouse(e.clientX, e.clientY);
   const hits = doRaycast();
@@ -1148,7 +1358,7 @@ window.addEventListener('click', e => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// DRAG TO ROTATE
+// DRAG TO ROTATE (solo si no hay un modal abierto)
 // ═══════════════════════════════════════════════════════════════
 let drag = false, px = 0, py = 0, dragDist = 0;
 
@@ -1158,7 +1368,7 @@ window.addEventListener('mousedown', e => {
 });
 window.addEventListener('mouseup', () => drag=false);
 window.addEventListener('mousemove', e => {
-  if(!drag) return;
+  if(!drag || modalActive) return; // si hay modal, no rotar
   const dx=e.clientX-px, dy=e.clientY-py;
   dragDist += Math.abs(dx)+Math.abs(dy);
   model.rotation.y += dx*.007;
@@ -1166,19 +1376,21 @@ window.addEventListener('mousemove', e => {
   px=e.clientX; py=e.clientY;
 });
 
-// Scroll zoom
+// Scroll zoom (solo si no hay modal)
 window.addEventListener('wheel', e=>{
+  if (modalActive) return; // no hacer zoom en el 3D si hay modal abierto
   camera.position.multiplyScalar(1+e.deltaY*.001);
   camera.position.clampLength(5,35);
 },{passive:true});
 
 // ═══════════════════════════════════════════════════════════════
-// TOUCH CONTROLS
+// TOUCH CONTROLS (solo si no hay modal)
 // ═══════════════════════════════════════════════════════════════
 let touches = {}, pinchDist = 0, touchDrag = false, touchMoved = false;
 let tpx = 0, tpy = 0, touchTime = 0;
 
 window.addEventListener('touchstart', e => {
+  if (modalActive) return; // no interactuar con 3D si hay modal
   e.preventDefault();
   touchMoved = false; touchTime = Date.now();
   if(e.touches.length === 1) {
@@ -1192,6 +1404,7 @@ window.addEventListener('touchstart', e => {
 },{passive:false});
 
 window.addEventListener('touchmove', e => {
+  if (modalActive) return; // no mover cámara si hay modal
   e.preventDefault();
   touchMoved = true;
   if(e.touches.length === 1 && touchDrag) {
@@ -1211,6 +1424,7 @@ window.addEventListener('touchmove', e => {
 },{passive:false});
 
 window.addEventListener('touchend', e => {
+  if (modalActive) return;
   touchDrag=false;
   if(!touchMoved && Date.now()-touchTime < 300 && e.changedTouches.length===1) {
     const t = e.changedTouches[0];
@@ -1241,11 +1455,13 @@ function openPZ(src, title) {
   const h = document.getElementById('pz-hint-bar');
   h.style.animation='none'; void h.offsetWidth;
   h.style.animation='fadeHint 4s forwards';
+  modalActive = true; // marcar modal abierto
 }
 window.openPZ = openPZ;
 
 function closePZ() {
   document.getElementById('pz-viewer').classList.remove('open');
+  modalActive = false; // quitar marca
 }
 window.closePZ = closePZ;
 
@@ -1290,6 +1506,7 @@ window.pzZoomBtn = pzZoomBtn;
 const pzStage = document.getElementById('pz-stage');
 pzStage.addEventListener('wheel', e => {
   e.preventDefault();
+  e.stopPropagation(); // evitar que afecte al canvas
   pzZoomAt(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY);
 },{passive:false});
 
@@ -1351,40 +1568,59 @@ pzStage.addEventListener('touchend', e => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// BOM — DATOS PRECARGADOS
-// ── Modifica BOM_DATA para actualizar la tabla ──
+// BOM — DATOS DEL ARCHIVO CSV PROPORCIONADO (ordenado por referencia)
 // ═══════════════════════════════════════════════════════════════
-const BOM_DATA = [
-  // Control
-  {ref:'U1',   qty:1, value:'Arduino Nano',       desc:'Microcontrolador ATmega328P 16MHz',        pkg:'DIP-30',     cat:'Control'},
-  {ref:'U2',   qty:1, value:'NE555',              desc:'Temporizador PWM driver flyback',          pkg:'DIP-8',      cat:'Control'},
-  {ref:'U3,U4',qty:2, value:'Optoacoplador 4N35', desc:'Aislamiento galvánico MCU / alta tensión', pkg:'DIP-6',      cat:'Control'},
-  {ref:'BTN1', qty:1, value:'Pulsador NO',         desc:'Botón de disparo normalmente abierto',     pkg:'THT',        cat:'Control'},
-  // Potencia
-  {ref:'Q1',   qty:1, value:'MOSFET IRF3205',     desc:'N-Ch 55V 110A, switching flyback',         pkg:'TO-220',     cat:'Potencia'},
-  {ref:'Q2,Q3',qty:2, value:'IGBT FGA25N120',     desc:'N-Ch 1200V 25A, conmutación bobinas',      pkg:'TO-247',     cat:'Potencia'},
-  {ref:'T1',   qty:1, value:'Transformador Flyback', desc:'Elevador 12V → 300-400V',                pkg:'THT',        cat:'Potencia'},
-  {ref:'D1',   qty:1, value:'1N4007',             desc:'Diodo rectificador HV 1000V 1A',           pkg:'DO-41',      cat:'Potencia'},
-  {ref:'D2,D3',qty:2, value:'1N4148',             desc:'Diodo de rueda libre bobinas',             pkg:'DO-35',      cat:'Potencia'},
-  // Almacenamiento
-  {ref:'C1,C2',qty:2, value:'2200µF 400V',        desc:'Condensador electrolítico banco HV',       pkg:'Radial Ø35', cat:'Almacenamiento'},
-  {ref:'BAT1', qty:1, value:'LiPo 3S 1000mAh',   desc:'11.1V 30C descarga, conector XT60',        pkg:'—',          cat:'Almacenamiento'},
+const BOM_DATA_RAW = [
   // Pasivos
-  {ref:'C3',   qty:1, value:'100nF',              desc:'Desacoplo VCC Arduino',                    pkg:'SMD 0805',   cat:'Pasivos'},
-  {ref:'C4,C5',qty:2, value:'10nF',               desc:'Temporización 555',                        pkg:'THT',        cat:'Pasivos'},
-  {ref:'R1,R2',qty:2, value:'10Ω 1W',             desc:'Resistencias de gate IGBT',                pkg:'THT',        cat:'Pasivos'},
-  {ref:'R3,R4',qty:2, value:'1kΩ',                desc:'Pull-down base optoacoplador',             pkg:'THT',        cat:'Pasivos'},
-  {ref:'R5,R6',qty:2, value:'100kΩ',              desc:'Divisor retroalimentación V_FB',           pkg:'THT',        cat:'Pasivos'},
+  {ref:'C1,C2,C3', qty:3, value:'4700μF/63V', desc:'Polarized capacitor', cat:'Pasivos'},
+  {ref:'C4', qty:1, value:'47nF', desc:'Unpolarized capacitor', cat:'Pasivos'},
+  {ref:'C5', qty:1, value:'470μF/50V', desc:'Polarized capacitor', cat:'Pasivos'},
+  {ref:'C6,C7', qty:2, value:'0.1μF', desc:'Unpolarized capacitor', cat:'Pasivos'},
+  {ref:'R1', qty:1, value:'3.3KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
+  {ref:'R2,R9,R17', qty:3, value:'4.7KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
+  {ref:'R3,R4,R20,R22', qty:4, value:'1.2KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
+  {ref:'R5,R8,R15,R16', qty:4, value:'10KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
+  {ref:'R6,R7,R13,R14', qty:4, value:'2.2KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
+  {ref:'R10,R11,R12,R18,R19,R21', qty:6, value:'10Ω', desc:'Resistor, US symbol', cat:'Pasivos'},
+  // Sensores (LEDs y fototransistores)
+  {ref:'D1', qty:1, value:'CAPACITOR INDICATOR', desc:'Light emitting diode', cat:'Sensores'},
+  {ref:'D2,D11', qty:2, value:'BOARD LED', desc:'Light emitting diode', cat:'Sensores'},
+  {ref:'D3,D10', qty:2, value:'COIL LED', desc:'Light emitting diode', cat:'Sensores'},
+  {ref:'D6,D7', qty:2, value:'IR LED', desc:'Light emitting diode', cat:'Sensores'},
+  {ref:'Q1,Q6', qty:2, value:'BPW40', desc:'Phototransistor NPN', cat:'Sensores'},
+  // Potencia (diodos, MOSFETs, transformador)
+  {ref:'D4,D8', qty:2, value:'31DF4', desc:'30V 3A Schottky Barrier Rectifier Diode', cat:'Potencia'},
+  {ref:'D5,D9', qty:2, value:'75V/5W', desc:'Zener diode', cat:'Potencia'},
+  {ref:'Q3,Q4,Q5,Q8,Q9,Q10', qty:6, value:'IRF740', desc:'N-Channel Power MOSFET, TO-220AB', cat:'Potencia'},
+  {ref:'J1', qty:1, value:'TRANSFORMER', desc:'Generic screw terminal', cat:'Potencia'},
+  // Control (transistores pequeños, interruptores)
+  {ref:'Q2,Q7', qty:2, value:'2N2222', desc:'Small Signal NPN Transistor, TO-92', cat:'Control'},
+  {ref:'SW1', qty:1, value:'SW_SPST', desc:'Single Pole Single Throw (SPST) switch', cat:'Interfaz'},
+  {ref:'SW2', qty:1, value:'SW_Push', desc:'Push button switch', cat:'Interfaz'},
+  // Interfaz (conectores)
+  {ref:'J2', qty:1, value:'OUTPUT', desc:'Generic screw terminal', cat:'Interfaz'},
+  {ref:'J3', qty:1, value:'INPUT', desc:'Generic screw terminal', cat:'Interfaz'},
+  {ref:'J4', qty:1, value:'OUTPUT BOARD', desc:'Generic screw terminal', cat:'Interfaz'},
+  {ref:'J5', qty:1, value:'BOARD INPUT', desc:'Generic screw terminal', cat:'Interfaz'},
   // Electromagnética
-  {ref:'L1',   qty:1, value:'Bobina Etapa 1',     desc:'140v Cu esmaltado 1.2mm, 4 capas, ~2.8mH', pkg:'Manual',    cat:'Electromagnética'},
-  {ref:'L2',   qty:1, value:'Bobina Etapa 2',     desc:'140v Cu esmaltado 1.2mm, 4 capas, ~2.8mH', pkg:'Manual',    cat:'Electromagnética'},
-  {ref:'IR1,IR2',qty:2,value:'Sensor TCRT5000',   desc:'IR reflexivo, detección posición proyectil',pkg:'THT',       cat:'Sensores'},
-  {ref:'LCD1', qty:1, value:'LCD 16×2 HD44780',   desc:'Display caracteres, backlight azul',       pkg:'THT',        cat:'Interfaz'},
-  // Mecánica
-  {ref:'BARREL',qty:1,value:'Tubo inox Ø8mm',     desc:'Cañón guía proyectil, L=220mm, tol ±0.05',pkg:'—',         cat:'Mecánica'},
-  {ref:'STRUCT',qty:3,value:'Soporte PLA',         desc:'V-cradle impreso FDM, relleno 40% gyroid', pkg:'FDM',        cat:'Mecánica'},
-  {ref:'BASE',  qty:1,value:'Base madera',         desc:'Tabla 300×200×15mm',                       pkg:'—',          cat:'Mecánica'},
+  {ref:'L1,L2', qty:2, value:'COIL', desc:'Bobina Inductiva', cat:'Electromagnética'},
 ];
+
+// Ordenar por referencia (alfabéticamente)
+BOM_DATA_RAW.sort((a, b) => a.ref.localeCompare(b.ref));
+const BOM_DATA = BOM_DATA_RAW;
+
+// Función para actualizar el contador circular
+function updateCounter() {
+  const total = 10; // total de partes únicas (ajústalo según PARTS)
+  const count = seen.size;
+  const percent = (count / total) * 100;
+  const circle = document.getElementById('progress-circle');
+  const circumference = 2 * Math.PI * 16; // r=16
+  const dash = (percent / 100) * circumference;
+  circle.style.strokeDasharray = `${dash} ${circumference}`;
+  document.getElementById('counter-text').textContent = `${count}/${total}`;
+}
 
 (function renderBOM() {
   const cats = [...new Set(BOM_DATA.map(r=>r.cat))];
@@ -1392,9 +1628,21 @@ const BOM_DATA = [
   let activeCat = 'Todos';
 
   function buildChips() {
-    filterBar.innerHTML = ['Todos',...cats].map(c =>
-      `<button class="bom-filter-chip${c===activeCat?' on':''}" onclick="bomFilter('${c}')">${c}</button>`
-    ).join('');
+    filterBar.innerHTML = ['Todos',...cats].map(c => {
+      let icon = '';
+      switch(c) {
+        case 'Control': icon = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        case 'Potencia': icon = '<svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Almacenamiento': icon = '<svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Pasivos': icon = '<svg viewBox="0 0 24 24"><rect x="7" y="5" width="10" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 5v14" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        case 'Electromagnética': icon = '<svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="4" ry="4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Sensores': icon = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Interfaz': icon = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        case 'Mecánica': icon = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        default: icon = '';
+      }
+      return `<button class="bom-filter-chip${c===activeCat?' on':''}" onclick="bomFilter('${c}')">${icon}${c}</button>`;
+    }).join('');
   }
 
   window.bomFilter = function(cat) {
@@ -1416,24 +1664,82 @@ const BOM_DATA = [
       <div class="bom-stat"><div class="bs-l">Categorías</div><div class="bs-v">${cats.length}</div></div>`;
   }
 
-  // Table header
+  // Table header (sin columna Package)
   document.getElementById('bom-thead').innerHTML =
-    '<tr><th>Ref.</th><th>Cant.</th><th>Valor / Componente</th><th>Descripción</th><th>Package</th><th>Categoría</th></tr>';
+    '<tr><th>Ref.</th><th>Cant.</th><th>Valor / Componente</th><th>Descripción</th><th>Categoría</th></tr>';
 
-  // Table body
+  // Table body (sin columna Package)
   document.getElementById('bom-tbody').innerHTML = BOM_DATA.map(r => `
     <tr data-cat="${r.cat}">
-      <td style="font-family:'Black Ops One',serif;font-size:.78rem;color:var(--teal)">${escHtml(r.ref)}</td>
-      <td><span class="bom-badge ok">${escHtml(String(r.qty))}</span></td>
-      <td style="color:#fff;font-weight:600">${escHtml(r.value)}</td>
-      <td>${escHtml(r.desc||'')}</td>
-      <td style="color:var(--text-dim);font-size:.8rem">${escHtml(r.pkg||'')}</td>
-      <td><span class="bom-badge warn" style="font-size:.58rem">${escHtml(r.cat)}</span></td>
+      <td data-label="Ref." style="font-family:'Black Ops One',serif;font-size:.78rem;color:var(--teal)">${escHtml(r.ref)}</td>
+      <td data-label="Cant."><span class="bom-badge ok">${escHtml(String(r.qty))}</span></td>
+      <td data-label="Valor" style="color:#fff;font-weight:600">${escHtml(r.value)}</td>
+      <td data-label="Descripción">${escHtml(r.desc||'')}</td>
+      <td data-label="Categoría"><span class="bom-badge warn" style="font-size:.58rem">${escHtml(r.cat)}</span></td>
     </tr>`).join('');
 
   buildChips();
   document.getElementById('bom-summary').innerHTML = buildSummary('Todos');
 })();
+
+// Renderizado de la tabla BOM dentro de la pestaña del modal de esquemáticos
+function renderModalBOM() {
+  const cats = [...new Set(BOM_DATA.map(r=>r.cat))];
+  const filterBar = document.getElementById('bom-filter-bar-modal');
+  let activeCat = 'Todos';
+
+  function buildChips() {
+    filterBar.innerHTML = ['Todos',...cats].map(c => {
+      let icon = '';
+      switch(c) {
+        case 'Control': icon = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        case 'Potencia': icon = '<svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Almacenamiento': icon = '<svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Pasivos': icon = '<svg viewBox="0 0 24 24"><rect x="7" y="5" width="10" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 5v14" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        case 'Electromagnética': icon = '<svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="4" ry="4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Sensores': icon = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'; break;
+        case 'Interfaz': icon = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        case 'Mecánica': icon = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.5"/></svg>'; break;
+        default: icon = '';
+      }
+      return `<button class="bom-filter-chip${c===activeCat?' on':''}" onclick="bomFilterModal('${c}')">${icon}${c}</button>`;
+    }).join('');
+  }
+
+  window.bomFilterModal = function(cat) {
+    activeCat = cat;
+    buildChips();
+    const rows = document.querySelectorAll('#bom-tbody-modal tr');
+    rows.forEach(tr => {
+      tr.style.display = (cat==='Todos'||tr.dataset.cat===cat) ? '' : 'none';
+    });
+    document.getElementById('bom-summary-modal').innerHTML = buildSummaryModal(cat);
+  };
+
+  function buildSummaryModal(cat) {
+    const filtered = cat==='Todos' ? BOM_DATA : BOM_DATA.filter(r=>r.cat===cat);
+    const totalQty = filtered.reduce((s,r)=>s+parseInt(r.qty||0),0);
+    return `
+      <div class="bom-stat"><div class="bs-l">Líneas</div><div class="bs-v">${filtered.length}</div></div>
+      <div class="bom-stat"><div class="bs-l">Unidades</div><div class="bs-v">${totalQty}</div></div>
+      <div class="bom-stat"><div class="bs-l">Categorías</div><div class="bs-v">${cats.length}</div></div>`;
+  }
+
+  document.getElementById('bom-thead-modal').innerHTML =
+    '<tr><th>Ref.</th><th>Cant.</th><th>Valor / Componente</th><th>Descripción</th><th>Categoría</th></tr>';
+
+  document.getElementById('bom-tbody-modal').innerHTML = BOM_DATA.map(r => `
+    <tr data-cat="${r.cat}">
+      <td data-label="Ref." style="font-family:'Black Ops One',serif;font-size:.78rem;color:var(--teal)">${escHtml(r.ref)}</td>
+      <td data-label="Cant."><span class="bom-badge ok">${escHtml(String(r.qty))}</span></td>
+      <td data-label="Valor" style="color:#fff;font-weight:600">${escHtml(r.value)}</td>
+      <td data-label="Descripción">${escHtml(r.desc||'')}</td>
+      <td data-label="Categoría"><span class="bom-badge warn" style="font-size:.58rem">${escHtml(r.cat)}</span></td>
+    </tr>`).join('');
+
+  buildChips();
+  document.getElementById('bom-summary-modal').innerHTML = buildSummaryModal('Todos');
+}
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1441,16 +1747,26 @@ function escHtml(s) {
 // ═══════════════════════════════════════════════════════════════
 // MODAL / TABS
 // ═══════════════════════════════════════════════════════════════
-function openBOM() { document.getElementById('bom-modal').classList.add('open'); }
-function closeBOM() { document.getElementById('bom-modal').classList.remove('open'); }
+let modalActive = false; // control para bloquear zoom/rotación 3D
+
+function openBOM() { 
+  document.getElementById('bom-modal').classList.add('open'); 
+  modalActive = true;
+}
+function closeBOM() { 
+  document.getElementById('bom-modal').classList.remove('open');
+  modalActive = false;
+}
 window.openBOM = openBOM; window.closeBOM = closeBOM;
 
 function openModal(tab) {
   document.getElementById('sch-modal').classList.add('open');
   switchTabByName(tab);
+  modalActive = true;
 }
 function closeModal() {
   document.getElementById('sch-modal').classList.remove('open');
+  modalActive = false;
 }
 window.openModal = openModal;
 window.closeModal = closeModal;
@@ -1463,7 +1779,7 @@ function switchTab(name, btn) {
 }
 function switchTabByName(name) {
   document.querySelectorAll('.tab').forEach((t,i)=>{
-    t.classList.toggle('on', (name==='full'&&i===0)||(name==='sec'&&i===1));
+    t.classList.toggle('on', (name==='full'&&i===0)||(name==='sec'&&i===1)||(name==='bom'&&i===2));
   });
   document.querySelectorAll('.tpane').forEach(t=>t.classList.remove('on'));
   document.getElementById('tpane-'+name).classList.add('on');
@@ -1471,7 +1787,7 @@ function switchTabByName(name) {
 window.switchTab = switchTab;
 
 // ═══════════════════════════════════════════════════════════════
-// LIGHTBOX
+// LIGHTBOX (no usado actualmente)
 // ═══════════════════════════════════════════════════════════════
 function openLightbox(id) {
   if(!id || !SCHEMS[id]) return;
@@ -1492,6 +1808,14 @@ window.addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// EVITAR QUE EL SCROLL EN PANELES AFECTE AL MODELO 3D
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('panel').addEventListener('wheel', (e) => e.stopPropagation(), { passive: false });
+document.getElementById('sch-modal').addEventListener('wheel', (e) => e.stopPropagation(), { passive: false });
+document.getElementById('bom-modal').addEventListener('wheel', (e) => e.stopPropagation(), { passive: false });
+document.getElementById('pz-viewer').addEventListener('wheel', (e) => e.stopPropagation(), { passive: false });
+
+// ═══════════════════════════════════════════════════════════════
 // RESIZE
 // ═══════════════════════════════════════════════════════════════
 window.addEventListener('resize', () => {
@@ -1510,7 +1834,7 @@ function animate() {
   requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
 
-  if(!drag && !touchDrag) {
+  if(!drag && !touchDrag && !modalActive) {
     model.rotation.y += .0012;
   }
 
@@ -1530,6 +1854,11 @@ function animate() {
   renderer.render(scene,camera);
 }
 animate();
+
+// Inicializar el BOM de la pestaña
+renderModalBOM();
+// Inicializar contador circular
+updateCounter();
 </script>
 </body>
 </html>
