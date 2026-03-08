@@ -100,10 +100,16 @@ canvas{display:block;touch-action:none}
 .mnbtn.amber{color:rgba(255,140,42,0.55)}
 .mnbtn.amber:active,.mnbtn.amber:hover{color:var(--amber)}
 .mnbtn svg{width:18px;height:18px}
-/* Adjust hint/counter bottom spacing on mobile */
+/* Adjust hint/counter bottom spacing on mobile - ahora con z-index mayor */
 @media(max-width:640px){
-  #hint{bottom:calc(72px + env(safe-area-inset-bottom))}
-  #counter{bottom:calc(72px + env(safe-area-inset-bottom))}
+  #hint{
+    bottom:calc(72px + env(safe-area-inset-bottom));
+    z-index:101 !important;
+  }
+  #counter{
+    bottom:calc(72px + env(safe-area-inset-bottom));
+    z-index:101 !important;
+  }
 }
 
 /* ── HINT ── */
