@@ -100,33 +100,7 @@ canvas{display:block;touch-action:none}
 .mnbtn.amber{color:rgba(255,140,42,0.55)}
 .mnbtn.amber:active,.mnbtn.amber:hover{color:var(--amber)}
 .mnbtn svg{width:18px;height:18px}
-/* Adjust hint/counter bottom spacing on mobile - ahora con z-index mayor */
-@media(max-width:640px){
-  #hint{
-    bottom:calc(72px + env(safe-area-inset-bottom));
-    z-index:101 !important;
-    /* Evitar que se superponga con el counter (right:18px + 60px de ancho) */
-    left:16px;
-    right:90px;
-    transform:none;
-    pointer-events:none;
-  }
-  #hint-inner{
-    font-size:0.52rem;
-    padding:5px 10px;
-    letter-spacing:0.1em;
-    white-space:normal;
-    text-align:center;
-    line-height:1.45;
-    width:100%;
-  }
-  .hdot{display:none}
-  #counter{
-    bottom:calc(72px + env(safe-area-inset-bottom));
-    z-index:101 !important;
-    right:14px;
-  }
-}
+
 
 /* ── HINT ── */
 #hint{
@@ -629,6 +603,38 @@ canvas{display:block;touch-action:none}
     height: 14px;
   }
 }
+/* ── MOBILE: hint + counter — va AL FINAL para sobrescribir los estilos base ── */
+@media(max-width:640px){
+  #hint{
+    bottom:calc(78px + env(safe-area-inset-bottom)) !important;
+    left:8px !important;
+    right:82px !important;
+    transform:none !important;
+    width:auto !important;
+    z-index:101 !important;
+    pointer-events:none;
+  }
+  #hint-inner{
+    display:block !important;
+    width:100% !important;
+    font-size:0.5rem !important;
+    padding:5px 10px !important;
+    letter-spacing:0.08em !important;
+    white-space:normal !important;
+    text-align:center !important;
+    line-height:1.5 !important;
+    border-radius:12px !important;
+  }
+  .hdot{ display:none !important }
+  #counter{
+    bottom:calc(78px + env(safe-area-inset-bottom)) !important;
+    right:10px !important;
+    width:54px !important;
+    height:54px !important;
+    z-index:101 !important;
+  }
+  #counter-text{ font-size:0.75rem !important }
+}
 </style>
 </head>
 <body>
@@ -795,18 +801,18 @@ canvas{display:block;touch-action:none}
 // Formatos soportados: PNG, JPG, SVG
 // ═══════════════════════════════════════════════════════════════
 const SECTORS = [
-  { id:'control',  title:'Placa de Filtrado',                     img:'esquemas/Placa-de-Filtrado.png'        },
-  { id:'carga',    title:'Placa con Interruptores',               img:'esquemas/Placa-con-Interruptores.png'  },
-  { id:'driver1',  title:'Fuente de Alimentacion 35V',            img:'Fuente-de-Alimentacion-35V.png'        },
-  { id:'driver2',  title:'Modulo de Aceleracion de Bobina 1 & 2', img:'Modulo-de-Aceleracion-de-Bobina.png'   },
+  { id:'control',  title:'Placa de Filtrado',                     img:'esquemas/sector_control.png'  },
+  { id:'carga',    title:'Placa con Interruptores',               img:'esquemas/sector_carga.png'    },
+  { id:'driver1',  title:'Fuente de Alimentacion 35V',            img:'esquemas/sector_driver1.png'  },
+  { id:'driver2',  title:'Modulo de Aceleracion de Bobina 1 & 2', img:'esquemas/sector_driver2.png'  },
 ];
 
 // Sector image lookup by PCB id (matches PARTS schemImg field)
 const SECTOR_IMG = {
-  pcb1: 'esquemas/Placa-de-Filtrado.png',
-  pcb2: 'esquemas/Placa-con-Interruptores.png',
-  pcb3: 'esquemas/Fuente-de-Alimentacion-35V.png',
-  pcb4: 'esquemas/Modulo-de-Aceleracion-de-Bobina.png',
+  pcb1: 'esquemas/Placa de Filtrado.png',
+  pcb2: 'esquemas/Placa con Interruptores.png',
+  pcb3: 'esquemas/Fuente de Alimentacion 35V.png',
+  pcb4: 'esquemas/Modulo de Aceleracion de Bobina.png',
 };
 
 // Build sector grid with images
