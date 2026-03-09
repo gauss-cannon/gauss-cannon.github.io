@@ -105,10 +105,26 @@ canvas{display:block;touch-action:none}
   #hint{
     bottom:calc(72px + env(safe-area-inset-bottom));
     z-index:101 !important;
+    /* Evitar que se superponga con el counter (right:18px + 60px de ancho) */
+    left:16px;
+    right:90px;
+    transform:none;
+    pointer-events:none;
   }
+  #hint-inner{
+    font-size:0.52rem;
+    padding:5px 10px;
+    letter-spacing:0.1em;
+    white-space:normal;
+    text-align:center;
+    line-height:1.45;
+    width:100%;
+  }
+  .hdot{display:none}
   #counter{
     bottom:calc(72px + env(safe-area-inset-bottom));
     z-index:101 !important;
+    right:14px;
   }
 }
 
@@ -246,7 +262,7 @@ canvas{display:block;touch-action:none}
 /* ── SCHEMATIC MODAL (centered con transición) ── */
 #sch-modal{
   position:fixed;inset:0;z-index:300;
-  display:none;
+  display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
@@ -255,11 +271,14 @@ canvas{display:block;touch-action:none}
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   opacity:0;
-  transition:opacity 0.3s ease;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity 0.25s ease, visibility 0.25s;
 }
 #sch-modal.open{
-  display:flex;
   opacity:1;
+  visibility:visible;
+  pointer-events:auto;
 }
 
 #smc{
@@ -374,7 +393,16 @@ canvas{display:block;touch-action:none}
 }
 .sec-placeholder{padding:22px 16px;text-align:center;font-size:.74rem;color:rgba(180,204,216,.35);line-height:1.7}
 .sec-placeholder code{display:block;margin-top:6px;color:rgba(0,217,176,.35);font-size:.68rem;word-break:break-all}
-/* PDF desktop hint bar */
+/* Padding del modal en móvil: dejar espacio para nav top y nav bottom */
+@media(max-width:640px){
+  #sch-modal{
+    padding:58px 0 calc(72px + env(safe-area-inset-bottom)) 0;
+  }
+  #smc{
+    border-radius:0;
+    max-height:100%;
+  }
+}
 .pdf-desktop-hint{
   display:flex;align-items:center;justify-content:center;gap:8px;
   padding:7px 16px;background:rgba(0,217,176,0.04);border-bottom:1px solid rgba(0,217,176,.08);
@@ -383,6 +411,14 @@ canvas{display:block;touch-action:none}
 }
 @media(max-width:640px){.pdf-desktop-hint{display:none}}
 
+/* PDF desktop hint bar */
+.pdf-desktop-hint{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:7px 16px;background:rgba(0,217,176,0.04);border-bottom:1px solid rgba(0,217,176,.08);
+  font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(0,217,176,.4);
+  flex-shrink:0;
+}
+@media(max-width:640px){.pdf-desktop-hint{display:none}}
 /* ── PAN-ZOOM VIEWER ── */
 #pz-viewer{
   position:fixed;inset:0;z-index:500;
@@ -1292,6 +1328,8 @@ let tpx = 0, tpy = 0, touchTime = 0;
 
 window.addEventListener('touchstart', e => {
   if (modalActive) return; // no interactuar con 3D si hay modal
+  // CRÍTICO: solo capturar el canvas 3D — no bloquear botones, nav, panel, etc.
+  if (e.target !== renderer.domElement) return;
   e.preventDefault();
   touchMoved = false; touchTime = Date.now();
   if(e.touches.length === 1) {
@@ -1307,6 +1345,7 @@ window.addEventListener('touchstart', e => {
 
 window.addEventListener('touchmove', e => {
   if (modalActive) return; // no mover cámara si hay modal
+  if (e.target !== renderer.domElement) return;
   e.preventDefault();
   touchMoved = true;
   if(e.touches.length === 1 && touchDrag) {
@@ -1327,6 +1366,7 @@ window.addEventListener('touchmove', e => {
 
 window.addEventListener('touchend', e => {
   if (modalActive) return;
+  if (e.target !== renderer.domElement) { touchDrag=false; return; }
   touchDrag=false;
   if(!touchMoved && Date.now()-touchTime < 300 && e.changedTouches.length===1) {
     const t = e.changedTouches[0];
