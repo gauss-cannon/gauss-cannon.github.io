@@ -187,6 +187,7 @@ canvas{display:block;touch-action:none}
   }
   #panel.open{transform:translateY(-50%) translateX(0);opacity:1}
 }
+
 @media(max-width:768px){
   #panel{
     bottom:0;left:0;right:0;max-height:68vh;
@@ -240,7 +241,7 @@ canvas{display:block;touch-action:none}
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  padding:54px 20px;
+  padding:58px 16px 8px;
   background:rgba(0,0,0,0.92);
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
@@ -258,7 +259,8 @@ canvas{display:block;touch-action:none}
 #smc{
   max-width:980px;
   width:100%;
-  max-height:calc(100vh - 108px);
+  height:calc(100vh - 66px);
+  max-height:calc(100vh - 66px);
   margin:0 auto;
   background:var(--panel);
   border:1px solid var(--border);
@@ -296,9 +298,59 @@ canvas{display:block;touch-action:none}
 /* Flex column panes with scrollable content */
 .tpane{display:none;flex:1;min-height:0;flex-direction:column;overflow:hidden}
 .tpane.on{display:flex}
-#tpane-full{flex:1;min-height:0;overflow:hidden}
-.pdf-wrap{width:100%;height:100%;display:flex;flex-direction:column;min-height:0}
-.pdf-wrap iframe{flex:1;border:none;min-height:0}
+#tpane-full{flex:1;min-height:0;overflow:hidden;flex-direction:column}
+/* ── SCHEMATIC IMAGE PAN-ZOOM VIEWER ── */
+#pdf-pz-wrap{
+  flex:1;min-height:0;overflow:hidden;
+  position:relative;cursor:grab;
+  background:#050e18;
+  touch-action:none;
+}
+#pdf-pz-wrap.dragging{cursor:grabbing}
+#sch-img-inner{
+  position:absolute;top:0;left:0;
+  transform-origin:0 0;
+  will-change:transform;
+  line-height:0; /* evita espacio extra bajo el SVG */
+}
+/* SVG inyectado inline: sin rasterización, zoom vectorial puro */
+#sch-img-inner svg{
+  display:block;
+  pointer-events:none;
+  user-select:none;
+}
+#sch-img-inner img{
+  display:block;max-width:none;
+  user-select:none;-webkit-user-drag:none;pointer-events:none;
+}
+#pdf-loading{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(0,217,176,.4);pointer-events:none;
+}
+#pdf-loading-bar{width:120px;height:2px;background:rgba(0,217,176,.1);border-radius:2px;overflow:hidden}
+#pdf-loading-bar-inner{
+  height:100%;width:30%;background:var(--teal);
+  box-shadow:0 0 8px var(--teal);
+  animation:pdfPulse 1.4s ease-in-out infinite;
+}
+@keyframes pdfPulse{0%,100%{opacity:.3}50%{opacity:1}}
+#pdf-zoom-indicator{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;
+  background:rgba(3,5,8,.8);border:1px solid rgba(0,217,176,.15);
+  border-radius:20px;padding:5px 14px;pointer-events:none;
+  opacity:0;transition:opacity .3s;z-index:2;
+}
+#pdf-zoom-indicator.visible{opacity:1}
+#pdf-zoom-val{
+  font-family:'Black Ops One',serif;font-size:.7rem;
+  color:rgba(0,217,176,.6);letter-spacing:.1em;min-width:40px;text-align:center;
+}
+@media(max-width:640px){#pdf-pz-wrap{display:none}}
+.pdf-wrap{flex:1;width:100%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.pdf-wrap iframe{flex:1;width:100%;border:none;min-height:0;display:block}
 /* On mobile, iframe PDF is unreliable — show open-button fallback prominently */
 @media(max-width:640px){
   .pdf-wrap iframe{display:none}
@@ -736,18 +788,30 @@ canvas{display:block;touch-action:none}
     <div id="tpane-full" class="tpane on">
       <div class="pdf-desktop-hint">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-        Rueda del ratón para zoom · Click y arrastra para mover
+        Rueda del ratón para zoom · Click y arrastra para mover · Doble clic para ajustar
       </div>
-      <div class="pdf-wrap">
-        <iframe id="pdf-frame" src="esquemas/esquematico_completo.pdf" title="Esquemático completo"></iframe>
-        <div class="pdf-mobile-bar">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--teal);opacity:.35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-          <p>Los visores de PDF integrados no siempre funcionan en móvil.<br>Ábrelo directamente para verlo con zoom completo.</p>
-          <a class="pdf-link" href="esquemas/esquematico_completo.pdf" target="_blank">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Abrir PDF
-          </a>
+      <!-- Visor SVG inline pan-zoom (desktop) -->
+      <div id="pdf-pz-wrap">
+        <div id="sch-img-inner">
+          <!-- El SVG se inyecta aquí dinámicamente para zoom vectorial real -->
         </div>
+        <div id="pdf-loading">
+          <span>Cargando esquemático</span>
+          <div id="pdf-loading-bar"><div id="pdf-loading-bar-inner"></div></div>
+        </div>
+        <div id="pdf-zoom-indicator">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.5;color:var(--teal)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span id="pdf-zoom-val">100%</span>
+        </div>
+      </div>
+      <!-- Fallback móvil -->
+      <div class="pdf-mobile-bar">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--teal);opacity:.35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        <p>Ábrelo directamente para verlo con zoom completo.</p>
+        <a class="pdf-link" href="esquemas/esquema-completo.svg" target="_blank">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Ver imagen
+        </a>
       </div>
     </div>
     <div id="tpane-sec" class="tpane">
@@ -802,7 +866,6 @@ canvas{display:block;touch-action:none}
 // ═══════════════════════════════════════════════════════════════
 const SECTORS = [
   { id:'control',  title:'Placa de Filtrado',                     img:'esquemas/sector_control.png'  },
-  { id:'carga',    title:'Placa con Interruptores',               img:'esquemas/sector_carga.png'    },
   { id:'driver1',  title:'Fuente de Alimentacion 35V',            img:'esquemas/sector_driver1.png'  },
   { id:'driver2',  title:'Modulo de Aceleracion de Bobina 1 & 2', img:'esquemas/sector_driver2.png'  },
 ];
@@ -810,7 +873,6 @@ const SECTORS = [
 // Sector image lookup by PCB id (matches PARTS schemImg field)
 const SECTOR_IMG = {
   pcb1: 'esquemas/Placa de Filtrado.png',
-  pcb2: 'esquemas/Placa con Interruptores.png',
   pcb3: 'esquemas/Fuente de Alimentacion 35V.png',
   pcb4: 'esquemas/Modulo de Aceleracion de Bobina.png',
 };
@@ -1519,39 +1581,34 @@ pzStage.addEventListener('touchend', e => {
 // BOM — DATOS DEL ARCHIVO CSV PROPORCIONADO (ordenado por referencia)
 // ═══════════════════════════════════════════════════════════════
 const BOM_DATA_RAW = [
+  // Almacenamiento
+  {ref:'C1,C2,C3',              qty:3, value:'4700μF/63V', desc:'Condensador electrolítico polarizado',           cat:'Almacenamiento'},
+  {ref:'C5',                    qty:1, value:'470μF/50V',  desc:'Condensador electrolítico polarizado',           cat:'Almacenamiento'},
   // Pasivos
-  {ref:'C1,C2,C3', qty:3, value:'4700μF/63V', desc:'Polarized capacitor', cat:'Pasivos'},
-  {ref:'C4', qty:1, value:'47nF', desc:'Unpolarized capacitor', cat:'Pasivos'},
-  {ref:'C5', qty:1, value:'470μF/50V', desc:'Polarized capacitor', cat:'Pasivos'},
-  {ref:'C6,C7', qty:2, value:'0.1μF', desc:'Unpolarized capacitor', cat:'Pasivos'},
-  {ref:'R1', qty:1, value:'3.3KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
-  {ref:'R2,R9,R17', qty:3, value:'4.7KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
-  {ref:'R3,R4,R20,R22', qty:4, value:'1.2KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
-  {ref:'R5,R8,R15,R16', qty:4, value:'10KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
-  {ref:'R6,R7,R13,R14', qty:4, value:'2.2KΩ', desc:'Resistor, US symbol', cat:'Pasivos'},
-  {ref:'R10,R11,R12,R18,R19,R21', qty:6, value:'10Ω', desc:'Resistor, US symbol', cat:'Pasivos'},
-  // Sensores (LEDs y fototransistores)
-  {ref:'D1', qty:1, value:'CAPACITOR INDICATOR', desc:'Light emitting diode', cat:'Sensores'},
-  {ref:'D2,D11', qty:2, value:'BOARD LED', desc:'Light emitting diode', cat:'Sensores'},
-  {ref:'D3,D10', qty:2, value:'COIL LED', desc:'Light emitting diode', cat:'Sensores'},
-  {ref:'D6,D7', qty:2, value:'IR LED', desc:'Light emitting diode', cat:'Sensores'},
-  {ref:'Q1,Q6', qty:2, value:'BPW40', desc:'Phototransistor NPN', cat:'Sensores'},
-  // Potencia (diodos, MOSFETs, transformador)
-  {ref:'D4,D8', qty:2, value:'31DF4', desc:'30V 3A Schottky Barrier Rectifier Diode', cat:'Potencia'},
-  {ref:'D5,D9', qty:2, value:'75V/5W', desc:'Zener diode', cat:'Potencia'},
-  {ref:'Q3,Q4,Q5,Q8,Q9,Q10', qty:6, value:'IRF740', desc:'N-Channel Power MOSFET, TO-220AB', cat:'Potencia'},
-  {ref:'J1', qty:1, value:'TRANSFORMER', desc:'Generic screw terminal', cat:'Potencia'},
-  // Control (transistores pequeños, interruptores)
-  {ref:'Q2,Q7', qty:2, value:'2N2222', desc:'Small Signal NPN Transistor, TO-92', cat:'Control'},
-  {ref:'SW1', qty:1, value:'SW_SPST', desc:'Single Pole Single Throw (SPST) switch', cat:'Interfaz'},
-  {ref:'SW2', qty:1, value:'SW_Push', desc:'Push button switch', cat:'Interfaz'},
-  // Interfaz (conectores)
-  {ref:'J2', qty:1, value:'OUTPUT', desc:'Generic screw terminal', cat:'Interfaz'},
-  {ref:'J3', qty:1, value:'INPUT', desc:'Generic screw terminal', cat:'Interfaz'},
-  {ref:'J4', qty:1, value:'OUTPUT BOARD', desc:'Generic screw terminal', cat:'Interfaz'},
-  {ref:'J5', qty:1, value:'BOARD INPUT', desc:'Generic screw terminal', cat:'Interfaz'},
+  {ref:'C4',                    qty:1, value:'47nF',        desc:'Condensador no polarizado',                     cat:'Pasivos'},
+  {ref:'C6,C7,C8',              qty:3, value:'100nF',       desc:'Condensador no polarizado',                     cat:'Pasivos'},
+  {ref:'R4,R5,R14,R15',         qty:4, value:'1.2KΩ',       desc:'Resistor',                                      cat:'Pasivos'},
+  {ref:'R6,R9,R16,R19',         qty:4, value:'10KΩ',        desc:'Resistor',                                      cat:'Pasivos'},
+  {ref:'R7,R8,R17,R18',         qty:4, value:'2.2KΩ',       desc:'Resistor',                                      cat:'Pasivos'},
+  {ref:'R10,R20',               qty:2, value:'4.7KΩ',       desc:'Resistor',                                      cat:'Pasivos'},
+  {ref:'R11,R12,R13,R21,R22,R23', qty:6, value:'10Ω',      desc:'Resistor',                                      cat:'Pasivos'},
+  // Potencia
+  {ref:'D4,D9',                 qty:2, value:'31DF4',       desc:'30V 3A Schottky Barrier Rectifier Diode, DO-201AD', cat:'Potencia'},
+  {ref:'D5,D10',                qty:2, value:'75V/5W',      desc:'Diodo Zener',                                   cat:'Potencia'},
+  {ref:'J1',                    qty:1, value:'TRANSFORMER', desc:'Borne de conexión (transformador)',              cat:'Potencia'},
+  {ref:'Q3,Q4,Q5,Q8,Q9,Q10',   qty:6, value:'IRF740',      desc:'N-Channel Power MOSFET, 400V, 10A, TO-220AB',   cat:'Potencia'},
+  // Control
+  {ref:'Q2,Q7',                 qty:2, value:'2N2222',      desc:'Transistor NPN de señal pequeña, TO-92',        cat:'Control'},
+  // Sensores
+  {ref:'D6,D11',                qty:2, value:'IR LED',      desc:'LED infrarrojo emisor',                         cat:'Sensores'},
+  {ref:'Q1,Q6',                 qty:2, value:'BPW40',       desc:'Fototransistor NPN',                            cat:'Sensores'},
+  // Interfaz
+  {ref:'D2,D7',                 qty:2, value:'BOARD LED',   desc:'LED indicador de placa',                        cat:'Interfaz'},
+  {ref:'D3,D8',                 qty:2, value:'COIL LED',    desc:'LED indicador de bobina',                       cat:'Interfaz'},
+  {ref:'J2',                    qty:1, value:'OUTPUT',      desc:'Borne de conexión (salida)',                    cat:'Interfaz'},
+  {ref:'J5',                    qty:1, value:'BOARD INPUT', desc:'Borne de conexión (entrada de placa)',          cat:'Interfaz'},
   // Electromagnética
-  {ref:'L1,L2', qty:2, value:'COIL', desc:'Bobina Inductiva', cat:'Electromagnética'},
+  {ref:'L1,L2',                 qty:2, value:'COIL',        desc:'Bobina inductiva de disparo',                   cat:'Electromagnética'},
 ];
 
 // Ordenar por referencia (alfabéticamente)
@@ -1754,6 +1811,199 @@ function animate() {
   renderer.render(scene,camera);
 }
 animate();
+
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEMATIC SVG INLINE PAN-ZOOM VIEWER
+// SVG se inyecta inline → zoom vectorial puro, sin rasterización
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const SVG_URL  = 'esquemas/esquema-completo.svg';
+  const ZOOM_MIN = 0.02, ZOOM_MAX = 20, ZOOM_STEP = 0.12;
+
+  let ready = false;
+  let wrap = null, inner = null, svgEl = null;
+  let svgW = 0, svgH = 0;           // dimensiones naturales del SVG
+  let scale = 1, baseFit = 1;
+  let offX = 0, offY = 0;
+  let dragActive = false, dragSX = 0, dragSY = 0, dragOX = 0, dragOY = 0;
+  let zoomTimer = null;
+  let lastPinchDist = null, pinchCX = 0, pinchCY = 0;
+
+  function pDist(t){ const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+
+  function applyT(){
+    if(inner) inner.style.transform = `translate(${offX}px,${offY}px) scale(${scale})`;
+  }
+
+  function fit(){
+    if(!wrap || !svgW || !svgH) return;
+    const ww = wrap.clientWidth, wh = wrap.clientHeight;
+    if(!ww || !wh) return;
+    const s = Math.min(ww / svgW, wh / svgH);
+    baseFit = s; scale = s;
+    offX = (ww - svgW * s) / 2;
+    offY = (wh - svgH * s) / 2;
+    applyT();
+  }
+
+  function showZoom(){
+    const ind = document.getElementById('pdf-zoom-indicator');
+    const val = document.getElementById('pdf-zoom-val');
+    if(!ind) return;
+    if(val) val.textContent = Math.round((scale / baseFit) * 100) + '%';
+    ind.classList.add('visible');
+    clearTimeout(zoomTimer);
+    zoomTimer = setTimeout(() => ind.classList.remove('visible'), 1400);
+  }
+
+  function zoomAt(cx, cy, factor){
+    const ns = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale * factor));
+    const r = ns / scale;
+    offX = cx - r * (cx - offX);
+    offY = cy - r * (cy - offY);
+    scale = ns; applyT(); showZoom();
+  }
+
+  async function loadSVG(){
+    wrap  = document.getElementById('pdf-pz-wrap');
+    inner = document.getElementById('sch-img-inner');
+    const loading = document.getElementById('pdf-loading');
+    if(!wrap || !inner) return;
+
+    let svgText;
+    try {
+      const res = await fetch(SVG_URL);
+      if(!res.ok) throw new Error(res.status);
+      svgText = await res.text();
+    } catch(e) {
+      if(loading) loading.innerHTML = '<span style="color:rgba(255,140,42,.5)">Imagen no encontrada — colocá esquema-completo.svg en /esquemas/</span>';
+      console.warn('SVG viewer:', e.message);
+      return;
+    }
+
+    // Parsear SVG y extraer dimensiones
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    svgEl = doc.documentElement;
+
+    // Obtener ancho/alto del viewBox o de los atributos width/height
+    let w = 0, h = 0;
+    const vb = svgEl.getAttribute('viewBox');
+    if(vb){
+      const parts = vb.trim().split(/[\s,]+/);
+      w = parseFloat(parts[2]); h = parseFloat(parts[3]);
+    }
+    if(!w || !h){
+      w = parseFloat(svgEl.getAttribute('width'))  || 1000;
+      h = parseFloat(svgEl.getAttribute('height')) || 700;
+    }
+    svgW = w; svgH = h;
+
+    // Fijar dimensiones explícitas en el SVG inyectado
+    svgEl.setAttribute('width',  svgW);
+    svgEl.setAttribute('height', svgH);
+    svgEl.style.display = 'block';
+    svgEl.style.pointerEvents = 'none';
+    svgEl.style.userSelect = 'none';
+
+    // Inyectar en el DOM
+    inner.innerHTML = '';
+    inner.appendChild(svgEl);
+
+    if(loading) loading.style.display = 'none';
+    ready = true;
+
+    // Esperar a que el wrap tenga dimensiones reales
+    const tryFit = () => { if(wrap.clientWidth > 0) fit(); else requestAnimationFrame(tryFit); };
+    tryFit();
+    setupEvents();
+  }
+
+  function setupEvents(){
+    if(!wrap) return;
+
+    // Wheel zoom
+    wrap.addEventListener('wheel', e => {
+      e.preventDefault();
+      const r = wrap.getBoundingClientRect();
+      zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? (1+ZOOM_STEP) : (1-ZOOM_STEP));
+    }, {passive: false});
+
+    // Mouse drag
+    wrap.addEventListener('mousedown', e => {
+      if(e.button !== 0) return;
+      dragActive = true;
+      dragSX = e.clientX; dragSY = e.clientY;
+      dragOX = offX; dragOY = offY;
+      wrap.classList.add('dragging');
+    });
+    window.addEventListener('mousemove', e => {
+      if(!dragActive) return;
+      offX = dragOX + (e.clientX - dragSX);
+      offY = dragOY + (e.clientY - dragSY);
+      applyT();
+    });
+    window.addEventListener('mouseup', () => {
+      dragActive = false;
+      if(wrap) wrap.classList.remove('dragging');
+    });
+
+    // Touch drag + pinch
+    wrap.addEventListener('touchstart', e => {
+      if(e.touches.length === 1){
+        dragActive = true;
+        dragSX = e.touches[0].clientX; dragSY = e.touches[0].clientY;
+        dragOX = offX; dragOY = offY; lastPinchDist = null;
+      } else if(e.touches.length === 2){
+        dragActive = false;
+        lastPinchDist = pDist(e.touches);
+        const r = wrap.getBoundingClientRect();
+        pinchCX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
+        pinchCY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+      }
+    }, {passive: true});
+    wrap.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if(e.touches.length === 1 && dragActive){
+        offX = dragOX + (e.touches[0].clientX - dragSX);
+        offY = dragOY + (e.touches[0].clientY - dragSY); applyT();
+      } else if(e.touches.length === 2 && lastPinchDist !== null){
+        const nd = pDist(e.touches);
+        zoomAt(pinchCX, pinchCY, nd / lastPinchDist);
+        lastPinchDist = nd;
+      }
+    }, {passive: false});
+    wrap.addEventListener('touchend', () => { dragActive = false; lastPinchDist = null; });
+
+    // Doble clic → fit
+    wrap.addEventListener('dblclick', fit);
+    window.addEventListener('resize', () => { if(ready) fit(); });
+  }
+
+  // Arrancar al abrir el tab "full"
+  const _openModal = window.openModal;
+  window.openModal = function(tab){
+    _openModal(tab);
+    if(tab === 'full'){
+      setTimeout(() => { if(!ready) loadSVG(); else fit(); }, 320);
+    }
+  };
+  const _switchTab = window.switchTab;
+  window.switchTab = function(name, btn){
+    _switchTab(name, btn);
+    if(name === 'full'){
+      setTimeout(() => { if(!ready) loadSVG(); else fit(); }, 60);
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if(document.getElementById('tpane-full')?.classList.contains('on')) loadSVG();
+  });
+})();
+
 
 // Inicializar el BOM de la pestaña
 renderModalBOM();
