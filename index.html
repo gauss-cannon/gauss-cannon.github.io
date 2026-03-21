@@ -299,35 +299,41 @@ canvas{display:block;touch-action:none}
 .tpane{display:none;flex:1;min-height:0;flex-direction:column;overflow:hidden}
 .tpane.on{display:flex}
 #tpane-full{flex:1;min-height:0;overflow:hidden;flex-direction:column}
-/* ── SCHEMATIC IMAGE PAN-ZOOM VIEWER ── */
+/* ── SCHEMATIC SVG VIEWBOX VIEWER — sin transforms, sin rasterización ── */
 #pdf-pz-wrap{
-  flex:1;min-height:0;overflow:hidden;
-  position:relative;cursor:grab;
+  flex:1;
+  min-height:0;
+  position:relative;
+  overflow:hidden;
+  cursor:grab;
   background:#050e18;
   touch-action:none;
+  /* display se hereda de .tpane.on flex column */
 }
 #pdf-pz-wrap.dragging{cursor:grabbing}
 #sch-img-inner{
-  position:absolute;top:0;left:0;
-  transform-origin:0 0;
-  will-change:transform;
-  line-height:0; /* evita espacio extra bajo el SVG */
+  position:absolute;
+  inset:0;                 /* ocupa exactamente el wrap */
+  display:flex;
+  line-height:0;
 }
-/* SVG inyectado inline: sin rasterización, zoom vectorial puro */
+/* El SVG inyectado inline ocupa todo el contenedor — viewBox hace el fit */
 #sch-img-inner svg{
   display:block;
+  width:100%;
+  height:100%;
   pointer-events:none;
   user-select:none;
-}
-#sch-img-inner img{
-  display:block;max-width:none;
-  user-select:none;-webkit-user-drag:none;pointer-events:none;
+  shape-rendering:geometricPrecision;
+  text-rendering:optimizeLegibility;
 }
 #pdf-loading{
   position:absolute;inset:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:14px;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;
   color:rgba(0,217,176,.4);pointer-events:none;
+  background:#050e18;
+  z-index:2;
 }
 #pdf-loading-bar{width:120px;height:2px;background:rgba(0,217,176,.1);border-radius:2px;overflow:hidden}
 #pdf-loading-bar-inner{
@@ -348,7 +354,7 @@ canvas{display:block;touch-action:none}
   font-family:'Black Ops One',serif;font-size:.7rem;
   color:rgba(0,217,176,.6);letter-spacing:.1em;min-width:40px;text-align:center;
 }
-@media(max-width:640px){#pdf-pz-wrap{display:none}}
+@media(max-width:640px){#pdf-pz-wrap{display:none}}  /* se oculta en móvil, se usa fallback */
 .pdf-wrap{flex:1;width:100%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .pdf-wrap iframe{flex:1;width:100%;border:none;min-height:0;display:block}
 /* On mobile, iframe PDF is unreliable — show open-button fallback prominently */
@@ -482,13 +488,21 @@ canvas{display:block;touch-action:none}
 #pz-stage{
   flex:1;position:relative;overflow:hidden;
   cursor:grab;touch-action:none;
-  display:flex;align-items:center;justify-content:center;
 }
 #pz-stage.dragging{cursor:grabbing}
 #pz-content{
-  position:absolute;top:0;left:0;
-  transform-origin:0 0;
-  will-change:transform;
+  position:absolute;
+  inset:0;
+  display:flex;
+  line-height:0;
+}
+#pz-content svg{
+  display:block;
+  width:100%;height:100%;
+  pointer-events:none;
+  user-select:none;
+  shape-rendering:geometricPrecision;
+  text-rendering:optimizeLegibility;
 }
 #pz-img{
   display:block;max-width:none;
@@ -655,7 +669,7 @@ canvas{display:block;touch-action:none}
     height: 14px;
   }
 }
-/* ── MOBILE: hint + counter — va AL FINAL para sobrescribir los estilos base ── */
+/* ── MOBILE: hint + counter ── */
 @media(max-width:640px){
   #hint{
     bottom:calc(78px + env(safe-area-inset-bottom)) !important;
@@ -846,7 +860,7 @@ canvas{display:block;touch-action:none}
   </div>
   <div id="pz-stage">
     <div id="pz-content">
-      <img id="pz-img" src="" alt="Esquemático">
+      <!-- SVG o img se inyecta dinámicamente por openPZ -->
     </div>
     <div id="pz-zoom-bar">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.5;color:var(--teal)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -861,20 +875,17 @@ canvas{display:block;touch-action:none}
 <script>
 // ═══════════════════════════════════════════════════════════════
 // SECTOR IMAGES CONFIG
-// ── Coloca tus imágenes en la carpeta "esquemas/" ──
-// Formatos soportados: PNG, JPG, SVG
 // ═══════════════════════════════════════════════════════════════
 const SECTORS = [
-  { id:'control',  title:'Placa de Filtrado',                     img:'esquemas/sector_control.png'  },
-  { id:'driver1',  title:'Fuente de Alimentacion 35V',            img:'esquemas/sector_driver1.png'  },
-  { id:'driver2',  title:'Modulo de Aceleracion de Bobina 1 & 2', img:'esquemas/sector_driver2.png'  },
+  { id:'control',  title:'Placa de Filtrado',                     img:'esquemas/placa-de-filtrado.svg'       },
+  { id:'driver1',  title:'Fuente de Alimentacion 36V',            img:'esquemas/fuente-de-alimentacion.svg'  },
+  { id:'driver2',  title:'Modulo de Aceleracion de Bobina 1 & 2', img:'esquemas/modulo-bobina.svg'           },
 ];
 
-// Sector image lookup by PCB id (matches PARTS schemImg field)
 const SECTOR_IMG = {
-  pcb1: 'esquemas/Placa de Filtrado.png',
-  pcb3: 'esquemas/Fuente de Alimentacion 35V.png',
-  pcb4: 'esquemas/Modulo de Aceleracion de Bobina.png',
+  pcb1: 'esquemas/placa-de-filtrado.svg',
+  pcb3: 'esquemas/fuente-de-alimentacion.svg',
+  pcb4: 'esquemas/modulo-bobina.svg',
 };
 
 // Build sector grid with images
@@ -891,6 +902,7 @@ SECTORS.forEach(s => {
   card.addEventListener('click', () => openPZ(s.img, s.title));
   secGrid.appendChild(card);
 });
+
 // ═══════════════════════════════════════════════════════════════
 // PARTS DATA
 // ═══════════════════════════════════════════════════════════════
@@ -1452,130 +1464,193 @@ window.addEventListener('touchend', e => {
 // ═══════════════════════════════════════════════════════════════
 // PAN-ZOOM VIEWER
 // ═══════════════════════════════════════════════════════════════
-const pz = { scale:1, tx:0, ty:0, dragging:false, lx:0, ly:0, pinchDist:0 };
+// pz-viewer state se gestiona con pzVbX/Y/W/H y pzOrigW/H (ver más abajo)
 
-function openPZ(src, title) {
-  const img = document.getElementById('pz-img');
+
+// Estado del pz-viewer
+let pzSvgW = 0, pzSvgH = 0; // legacy (no usado para SVG, pero queda para PNG fallback)
+
+async function openPZ(src, title) {
+  const content = document.getElementById('pz-content');
+  const viewer  = document.getElementById('pz-viewer');
   document.getElementById('pz-title').textContent = title || 'Esquemático';
-  document.getElementById('pz-viewer').classList.add('open');
-  img.src = src;
-  if(img.complete && img.naturalWidth) { pzFit(); }
-  else { img.onload = pzFit; }
-  // Refresh hint animation
+
+  content.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(0,217,176,.4);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase">Cargando…</div>';
+  viewer.classList.add('open');
+
   const h = document.getElementById('pz-hint-bar');
-  h.style.animation='none'; void h.offsetWidth;
-  h.style.animation='fadeHint 4s forwards';
-  modalActive = true; // marcar modal abierto
+  h.style.animation='none'; void h.offsetWidth; h.style.animation='fadeHint 4s forwards';
+  modalActive = true;
+  pzSvgEl = null;
+
+  const isSVG = src.toLowerCase().endsWith('.svg');
+
+  if(isSVG){
+    let svgText;
+    try {
+      const res = await fetch(src);
+      if(!res.ok) throw new Error(res.status);
+      svgText = await res.text();
+    } catch(e) {
+      content.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,140,42,.5);font-size:.8rem;padding:20px;text-align:center">Imagen no encontrada:<br><code style="font-size:.7rem;opacity:.7">${src}</code></div>`;
+      return;
+    }
+
+    const parser = new DOMParser();
+    const doc    = parser.parseFromString(svgText, 'image/svg+xml');
+    pzSvgEl      = doc.documentElement;
+
+    // Dimensiones naturales desde viewBox
+    let w = 0, hh = 0;
+    const vb = pzSvgEl.getAttribute('viewBox');
+    if(vb){ const p=vb.trim().split(/[\s,]+/); w=parseFloat(p[2]); hh=parseFloat(p[3]); }
+    if(!w||!hh){ w=parseFloat(pzSvgEl.getAttribute('width'))||1000; hh=parseFloat(pzSvgEl.getAttribute('height'))||700; }
+    pzOrigW=w; pzOrigH=hh;
+
+    // SVG llena el contenedor; viewBox hace el fit
+    pzSvgEl.setAttribute('width',  '100%');
+    pzSvgEl.setAttribute('height', '100%');
+    pzSvgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    pzSvgEl.style.cssText = 'display:block;pointer-events:none;user-select:none;';
+
+    // Resetear viewBox al fit completo
+    pzVbX=0; pzVbY=0; pzVbW=pzOrigW; pzVbH=pzOrigH;
+    pzSvgEl.setAttribute('viewBox', `0 0 ${pzOrigW} ${pzOrigH}`);
+
+    content.innerHTML = '';
+    content.appendChild(pzSvgEl);
+    document.getElementById('pz-zoom-val').textContent = '100%';
+
+  } else {
+    // PNG/JPG fallback
+    const img = document.createElement('img');
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;pointer-events:none;';
+    content.innerHTML = '';
+    content.appendChild(img);
+    img.src = src;
+  }
 }
 window.openPZ = openPZ;
 
 function closePZ() {
   document.getElementById('pz-viewer').classList.remove('open');
-  modalActive = false; // quitar marca
+  document.getElementById('pz-content').innerHTML = '';
+  pzSvgEl = null; pzOrigW = 0; pzOrigH = 0;
+  modalActive = false;
 }
 window.closePZ = closePZ;
 
+
+// ── PZ-VIEWER: estado viewBox ──
+let pzSvgEl = null; // SVG actualmente en el pz-viewer
+let pzOrigW = 0, pzOrigH = 0;
+let pzVbX = 0, pzVbY = 0, pzVbW = 0, pzVbH = 0;
+const PZ_ZOOM_F = 0.14;
+
+function pzApplyVB(){
+  if(pzSvgEl) pzSvgEl.setAttribute('viewBox', `${pzVbX} ${pzVbY} ${pzVbW} ${pzVbH}`);
+  const lvl = Math.round(pzOrigW / pzVbW * 100);
+  document.getElementById('pz-zoom-val').textContent = lvl + '%';
+}
+
 function pzFit() {
-  const stage = document.getElementById('pz-stage');
-  const img = document.getElementById('pz-img');
-  const sw = stage.clientWidth, sh = stage.clientHeight;
-  const iw = img.naturalWidth || 800, ih = img.naturalHeight || 600;
-  const s = Math.min(sw/iw, sh/ih) * 0.92;
-  pz.scale = s;
-  pz.tx = (sw - iw*s) / 2;
-  pz.ty = (sh - ih*s) / 2;
-  pzApply();
+  pzVbX = 0; pzVbY = 0; pzVbW = pzOrigW; pzVbH = pzOrigH;
+  pzApplyVB();
 }
 window.pzFit = pzFit;
 
-function pzApply() {
-  document.getElementById('pz-content').style.transform =
-    `translate(${pz.tx}px,${pz.ty}px) scale(${pz.scale})`;
-  document.getElementById('pz-zoom-val').textContent = Math.round(pz.scale*100)+'%';
-}
-
-function pzZoomAt(factor, cx, cy) {
+function pzZoomAt(factor, clientX, clientY) {
   const stage = document.getElementById('pz-stage');
-  const rect = stage.getBoundingClientRect();
-  const ox = cx - rect.left, oy = cy - rect.top;
-  const ns = Math.max(0.08, Math.min(12, pz.scale * factor));
-  pz.tx = ox - (ox - pz.tx) * ns / pz.scale;
-  pz.ty = oy - (oy - pz.ty) * ns / pz.scale;
-  pz.scale = ns;
-  pzApply();
+  const rect  = stage.getBoundingClientRect();
+  const rx = (clientX - rect.left) / rect.width;
+  const ry = (clientY - rect.top)  / rect.height;
+  const pivotX = pzVbX + rx * pzVbW;
+  const pivotY = pzVbY + ry * pzVbH;
+  const minW = pzOrigW / 20, minH = pzOrigH / 20;
+  let nw = Math.max(minW, Math.min(pzOrigW * 4, pzVbW / factor));
+  let nh = nw * (pzOrigH / pzOrigW);
+  pzVbX = pivotX - rx * nw;
+  pzVbY = pivotY - ry * nh;
+  pzVbW = nw; pzVbH = nh;
+  pzApplyVB();
 }
 
 function pzZoomBtn(f) {
   const stage = document.getElementById('pz-stage');
-  pzZoomAt(f, stage.clientWidth/2 + stage.getBoundingClientRect().left,
-              stage.clientHeight/2 + stage.getBoundingClientRect().top);
+  const r = stage.getBoundingClientRect();
+  pzZoomAt(f, r.left + r.width/2, r.top + r.height/2);
 }
 window.pzZoomBtn = pzZoomBtn;
 
 // Mouse
 const pzStage = document.getElementById('pz-stage');
+let pzDrag = false, pzDSX = 0, pzDSY = 0, pzDVBX = 0, pzDVBY = 0;
+
 pzStage.addEventListener('wheel', e => {
-  e.preventDefault();
-  e.stopPropagation(); // evitar que afecte al canvas
-  pzZoomAt(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY);
+  e.preventDefault(); e.stopPropagation();
+  pzZoomAt(e.deltaY < 0 ? 1+PZ_ZOOM_F : 1-PZ_ZOOM_F, e.clientX, e.clientY);
 },{passive:false});
 
 pzStage.addEventListener('mousedown', e => {
   if(e.button!==0) return;
   e.preventDefault();
-  pz.dragging=true; pz.lx=e.clientX; pz.ly=e.clientY;
+  pzDrag=true; pzDSX=e.clientX; pzDSY=e.clientY; pzDVBX=pzVbX; pzDVBY=pzVbY;
   pzStage.classList.add('dragging');
 });
 window.addEventListener('mousemove', e => {
-  if(!pz.dragging) return;
-  pz.tx += e.clientX-pz.lx; pz.ty += e.clientY-pz.ly;
-  pz.lx=e.clientX; pz.ly=e.clientY;
-  pzApply();
+  if(!pzDrag) return;
+  const stage = document.getElementById('pz-stage');
+  const rect  = stage.getBoundingClientRect();
+  pzVbX = pzDVBX - (e.clientX-pzDSX) * (pzVbW/rect.width);
+  pzVbY = pzDVBY - (e.clientY-pzDSY) * (pzVbH/rect.height);
+  pzApplyVB();
 });
-window.addEventListener('mouseup', () => {
-  pz.dragging=false; pzStage.classList.remove('dragging');
-});
+window.addEventListener('mouseup', () => { pzDrag=false; pzStage.classList.remove('dragging'); });
 pzStage.addEventListener('dblclick', pzFit);
 
 // Touch
-let pzTouches = {}, pzLastTap = 0;
+let pzLastTap = 0, pzTDrag = false, pzTSX = 0, pzTSY = 0, pzTVBX = 0, pzTVBY = 0;
+let pzPD0 = 0, pzPVBX0 = 0, pzPVBY0 = 0, pzPVBW0 = 0, pzPVBH0 = 0;
+
 pzStage.addEventListener('touchstart', e => {
   e.preventDefault();
-  if(e.touches.length===1) {
-    pz.dragging=true; pz.lx=e.touches[0].clientX; pz.ly=e.touches[0].clientY;
-    // Double tap
-    const now=Date.now();
-    if(now-pzLastTap<300){ pzFit(); } pzLastTap=now;
-  } else if(e.touches.length===2) {
-    pz.dragging=false;
-    pz.pinchDist = Math.hypot(
-      e.touches[0].clientX-e.touches[1].clientX,
-      e.touches[0].clientY-e.touches[1].clientY);
+  if(e.touches.length === 1){
+    pzTDrag=true; pzTSX=e.touches[0].clientX; pzTSY=e.touches[0].clientY;
+    pzTVBX=pzVbX; pzTVBY=pzVbY;
+    const now=Date.now(); if(now-pzLastTap<300) pzFit(); pzLastTap=now;
+  } else if(e.touches.length === 2){
+    pzTDrag=false;
+    pzPD0 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    pzPVBX0=pzVbX; pzPVBY0=pzVbY; pzPVBW0=pzVbW; pzPVBH0=pzVbH;
   }
 },{passive:false});
 
 pzStage.addEventListener('touchmove', e => {
   e.preventDefault();
-  if(e.touches.length===1 && pz.dragging) {
-    pz.tx += e.touches[0].clientX-pz.lx;
-    pz.ty += e.touches[0].clientY-pz.ly;
-    pz.lx=e.touches[0].clientX; pz.ly=e.touches[0].clientY;
-    pzApply();
-  } else if(e.touches.length===2) {
-    const d = Math.hypot(
-      e.touches[0].clientX-e.touches[1].clientX,
-      e.touches[0].clientY-e.touches[1].clientY);
+  if(e.touches.length===1 && pzTDrag){
+    const stage=document.getElementById('pz-stage'), rect=stage.getBoundingClientRect();
+    pzVbX = pzTVBX - (e.touches[0].clientX-pzTSX)*(pzVbW/rect.width);
+    pzVbY = pzTVBY - (e.touches[0].clientY-pzTSY)*(pzVbH/rect.height);
+    pzApplyVB();
+  } else if(e.touches.length===2 && pzPD0){
+    const nd = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    const f  = nd/pzPD0;
     const mx = (e.touches[0].clientX+e.touches[1].clientX)/2;
     const my = (e.touches[0].clientY+e.touches[1].clientY)/2;
-    if(pz.pinchDist) pzZoomAt(d/pz.pinchDist, mx, my);
-    pz.pinchDist=d;
+    const stage=document.getElementById('pz-stage'), rect=stage.getBoundingClientRect();
+    const rx=(mx-rect.left)/rect.width, ry=(my-rect.top)/rect.height;
+    const nw = pzPVBW0/f, nh = pzPVBH0/f;
+    const pivX = pzPVBX0+rx*pzPVBW0, pivY = pzPVBY0+ry*pzPVBH0;
+    pzVbX=pivX-rx*nw; pzVbY=pivY-ry*nh; pzVbW=nw; pzVbH=nh;
+    pzApplyVB();
   }
 },{passive:false});
 
 pzStage.addEventListener('touchend', e => {
-  if(e.touches.length===0) pz.dragging=false;
-  if(e.touches.length<2) pz.pinchDist=0;
+  if(e.touches.length===0){ pzTDrag=false; }
+  if(e.touches.length<2){ pzPD0=0; }
 });
+
 
 // ═══════════════════════════════════════════════════════════════
 // BOM — DATOS DEL ARCHIVO CSV PROPORCIONADO (ordenado por referencia)
@@ -1671,7 +1746,7 @@ function renderModalBOM() {
   }
 
   document.getElementById('bom-thead-modal').innerHTML =
-    '<tr><th>Ref.</th><th>Cant.</th><th>Valor / Componente</th><th>Descripción</th><th>Categoría</th></tr>';
+    ' <th>Ref.</th><th>Cant.</th><th>Valor / Componente</th><th>Descripción</th><th>Categoría</th> ';
 
   document.getElementById('bom-tbody-modal').innerHTML = BOM_DATA.map(r => `
     <tr data-cat="${r.cat}">
@@ -1680,7 +1755,7 @@ function renderModalBOM() {
       <td data-label="Valor" style="color:#fff;font-weight:600">${escHtml(r.value)}</td>
       <td data-label="Descripción">${escHtml(r.desc||'')}</td>
       <td data-label="Categoría"><span class="bom-badge warn" style="font-size:.58rem">${escHtml(r.cat)}</span></td>
-    </tr>`).join('');
+     </tr>`).join('');
 
   buildChips();
   document.getElementById('bom-summary-modal').innerHTML = buildSummaryModal('Todos');
@@ -1813,58 +1888,81 @@ function animate() {
 animate();
 
 
-
-
 // ═══════════════════════════════════════════════════════════════
-// SCHEMATIC SVG INLINE PAN-ZOOM VIEWER
-// SVG se inyecta inline → zoom vectorial puro, sin rasterización
+// VISOR SVG — ZOOM/PAN VÍA VIEWBOX (sin transforms, sin rasterización)
+// El SVG ocupa 100%×100% del contenedor; viewBox hace el fit y el zoom.
 // ═══════════════════════════════════════════════════════════════
 (function(){
-  const SVG_URL  = 'esquemas/esquema-completo.svg';
-  const ZOOM_MIN = 0.02, ZOOM_MAX = 20, ZOOM_STEP = 0.12;
+  const SVG_URL = 'esquemas/esquema-completo.svg';
+  const ZOOM_FACTOR = 0.14;
+  const ZOOM_MAX_FACTOR = 20; // máx zoom: 20× respecto al fit inicial
 
   let ready = false;
-  let wrap = null, inner = null, svgEl = null;
-  let svgW = 0, svgH = 0;           // dimensiones naturales del SVG
-  let scale = 1, baseFit = 1;
-  let offX = 0, offY = 0;
-  let dragActive = false, dragSX = 0, dragSY = 0, dragOX = 0, dragOY = 0;
+  let svgEl = null;
+  // viewBox original (dimensiones naturales del SVG)
+  let origW = 0, origH = 0;
+  // viewBox actual
+  let vbX = 0, vbY = 0, vbW = 0, vbH = 0;
+  // drag
+  let drag = false, dragSX = 0, dragSY = 0, dragVBX = 0, dragVBY = 0;
+  // pinch
+  let pinchDist0 = 0, pinchVBX0 = 0, pinchVBY0 = 0, pinchVBW0 = 0, pinchVBH0 = 0;
   let zoomTimer = null;
-  let lastPinchDist = null, pinchCX = 0, pinchCY = 0;
+  let wrap = null, inner = null;
 
-  function pDist(t){ const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+  function pDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+  function pMid(t){ return { x:(t[0].clientX+t[1].clientX)/2, y:(t[0].clientY+t[1].clientY)/2 }; }
 
-  function applyT(){
-    if(inner) inner.style.transform = `translate(${offX}px,${offY}px) scale(${scale})`;
+  function applyVB(){
+    if(svgEl) svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
   }
 
+  // Fit: muestra el SVG completo con preserveAspectRatio (CSS lo gestiona)
   function fit(){
-    if(!wrap || !svgW || !svgH) return;
-    const ww = wrap.clientWidth, wh = wrap.clientHeight;
-    if(!ww || !wh) return;
-    const s = Math.min(ww / svgW, wh / svgH);
-    baseFit = s; scale = s;
-    offX = (ww - svgW * s) / 2;
-    offY = (wh - svgH * s) / 2;
-    applyT();
+    vbX = 0; vbY = 0; vbW = origW; vbH = origH;
+    applyVB();
+    showZoom(100);
   }
 
-  function showZoom(){
+  function showZoom(pct){
     const ind = document.getElementById('pdf-zoom-indicator');
     const val = document.getElementById('pdf-zoom-val');
     if(!ind) return;
-    if(val) val.textContent = Math.round((scale / baseFit) * 100) + '%';
+    const level = pct !== undefined ? pct : Math.round(origW / vbW * 100);
+    if(val) val.textContent = level + '%';
     ind.classList.add('visible');
     clearTimeout(zoomTimer);
     zoomTimer = setTimeout(() => ind.classList.remove('visible'), 1400);
   }
 
-  function zoomAt(cx, cy, factor){
-    const ns = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale * factor));
-    const r = ns / scale;
-    offX = cx - r * (cx - offX);
-    offY = cy - r * (cy - offY);
-    scale = ns; applyT(); showZoom();
+  // Zoom centrado en punto SVG (sx, sy) dentro del viewBox actual
+  // factor > 1 = acercar (reducir viewBox), factor < 1 = alejar
+  function zoomAt(clientX, clientY, factor){
+    if(!svgEl || !wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    // Convertir coordenadas de pantalla a coordenadas del viewBox actual
+    const ratioX = (clientX - rect.left) / rect.width;
+    const ratioY = (clientY - rect.top)  / rect.height;
+
+    // Anclar el punto bajo el cursor
+    const pivotX = vbX + ratioX * vbW;
+    const pivotY = vbY + ratioY * vbH;
+
+    // Limitar zoom
+    const minW = origW / ZOOM_MAX_FACTOR;
+    const minH = origH / ZOOM_MAX_FACTOR;
+    let newW = vbW / factor;
+    let newH = vbH / factor;
+    if(newW < minW){ newW = minW; newH = minH; }
+    if(newW > origW * 4){ newW = origW * 4; newH = origH * 4; } // zoom out max 4× del fit
+
+    // Mantener el punto de anclaje bajo el cursor
+    vbX = pivotX - ratioX * newW;
+    vbY = pivotY - ratioY * newH;
+    vbW = newW;
+    vbH = newH;
+    applyVB();
+    showZoom();
   }
 
   async function loadSVG(){
@@ -1879,46 +1977,42 @@ animate();
       if(!res.ok) throw new Error(res.status);
       svgText = await res.text();
     } catch(e) {
-      if(loading) loading.innerHTML = '<span style="color:rgba(255,140,42,.5)">Imagen no encontrada — colocá esquema-completo.svg en /esquemas/</span>';
+      if(loading) loading.innerHTML = `<span style="color:rgba(255,140,42,.5)">Imagen no encontrada<br><code style="font-size:.65rem;opacity:.6">${SVG_URL}</code></span>`;
       console.warn('SVG viewer:', e.message);
       return;
     }
 
-    // Parsear SVG y extraer dimensiones
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgText, 'image/svg+xml');
     svgEl = doc.documentElement;
 
-    // Obtener ancho/alto del viewBox o de los atributos width/height
-    let w = 0, h = 0;
+    // Extraer dimensiones del viewBox
     const vb = svgEl.getAttribute('viewBox');
     if(vb){
-      const parts = vb.trim().split(/[\s,]+/);
-      w = parseFloat(parts[2]); h = parseFloat(parts[3]);
+      const p = vb.trim().split(/[\s,]+/);
+      origW = parseFloat(p[2]); origH = parseFloat(p[3]);
     }
-    if(!w || !h){
-      w = parseFloat(svgEl.getAttribute('width'))  || 1000;
-      h = parseFloat(svgEl.getAttribute('height')) || 700;
+    if(!origW || !origH){
+      origW = parseFloat(svgEl.getAttribute('width'))  || 1000;
+      origH = parseFloat(svgEl.getAttribute('height')) || 700;
     }
-    svgW = w; svgH = h;
 
-    // Fijar dimensiones explícitas en el SVG inyectado
-    svgEl.setAttribute('width',  svgW);
-    svgEl.setAttribute('height', svgH);
+    // Configurar el SVG para que el CSS lo gestione (100%×100% en el contenedor)
+    svgEl.setAttribute('width',  '100%');
+    svgEl.setAttribute('height', '100%');
+    svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svgEl.style.display = 'block';
     svgEl.style.pointerEvents = 'none';
     svgEl.style.userSelect = 'none';
 
-    // Inyectar en el DOM
+    // Viewbox inicial = fit completo
+    vbX = 0; vbY = 0; vbW = origW; vbH = origH;
+    applyVB();
+
     inner.innerHTML = '';
     inner.appendChild(svgEl);
-
     if(loading) loading.style.display = 'none';
     ready = true;
-
-    // Esperar a que el wrap tenga dimensiones reales
-    const tryFit = () => { if(wrap.clientWidth > 0) fit(); else requestAnimationFrame(tryFit); };
-    tryFit();
     setupEvents();
   }
 
@@ -1928,82 +2022,98 @@ animate();
     // Wheel zoom
     wrap.addEventListener('wheel', e => {
       e.preventDefault();
-      const r = wrap.getBoundingClientRect();
-      zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? (1+ZOOM_STEP) : (1-ZOOM_STEP));
+      const factor = e.deltaY < 0 ? (1 + ZOOM_FACTOR) : (1 - ZOOM_FACTOR);
+      zoomAt(e.clientX, e.clientY, factor);
     }, {passive: false});
 
     // Mouse drag
     wrap.addEventListener('mousedown', e => {
       if(e.button !== 0) return;
-      dragActive = true;
+      drag = true;
       dragSX = e.clientX; dragSY = e.clientY;
-      dragOX = offX; dragOY = offY;
+      dragVBX = vbX; dragVBY = vbY;
       wrap.classList.add('dragging');
     });
     window.addEventListener('mousemove', e => {
-      if(!dragActive) return;
-      offX = dragOX + (e.clientX - dragSX);
-      offY = dragOY + (e.clientY - dragSY);
-      applyT();
+      if(!drag || !wrap) return;
+      const rect = wrap.getBoundingClientRect();
+      // Cuántos viewBox-units se mueve por pixel
+      const pxToVBX = vbW / rect.width;
+      const pxToVBY = vbH / rect.height;
+      vbX = dragVBX - (e.clientX - dragSX) * pxToVBX;
+      vbY = dragVBY - (e.clientY - dragSY) * pxToVBY;
+      applyVB();
     });
     window.addEventListener('mouseup', () => {
-      dragActive = false;
+      drag = false;
       if(wrap) wrap.classList.remove('dragging');
     });
 
-    // Touch drag + pinch
+    // Touch drag
     wrap.addEventListener('touchstart', e => {
       if(e.touches.length === 1){
-        dragActive = true;
+        drag = true;
         dragSX = e.touches[0].clientX; dragSY = e.touches[0].clientY;
-        dragOX = offX; dragOY = offY; lastPinchDist = null;
+        dragVBX = vbX; dragVBY = vbY;
       } else if(e.touches.length === 2){
-        dragActive = false;
-        lastPinchDist = pDist(e.touches);
-        const r = wrap.getBoundingClientRect();
-        pinchCX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
-        pinchCY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+        drag = false;
+        pinchDist0  = pDist(e.touches);
+        pinchVBX0   = vbX; pinchVBY0 = vbY;
+        pinchVBW0   = vbW; pinchVBH0 = vbH;
       }
     }, {passive: true});
     wrap.addEventListener('touchmove', e => {
       e.preventDefault();
-      if(e.touches.length === 1 && dragActive){
-        offX = dragOX + (e.touches[0].clientX - dragSX);
-        offY = dragOY + (e.touches[0].clientY - dragSY); applyT();
-      } else if(e.touches.length === 2 && lastPinchDist !== null){
+      if(e.touches.length === 1 && drag){
+        const rect = wrap.getBoundingClientRect();
+        const pxToVBX = vbW / rect.width, pxToVBY = vbH / rect.height;
+        vbX = dragVBX - (e.touches[0].clientX - dragSX) * pxToVBX;
+        vbY = dragVBY - (e.touches[0].clientY - dragSY) * pxToVBY;
+        applyVB();
+      } else if(e.touches.length === 2){
         const nd = pDist(e.touches);
-        zoomAt(pinchCX, pinchCY, nd / lastPinchDist);
-        lastPinchDist = nd;
+        const factor = nd / pinchDist0;
+        const m = pMid(e.touches);
+        const rect = wrap.getBoundingClientRect();
+        const ratioX = (m.x - rect.left) / rect.width;
+        const ratioY = (m.y - rect.top)  / rect.height;
+        // Zoom desde estado inicial del pinch
+        const newW = pinchVBW0 / factor;
+        const newH = pinchVBH0 / factor;
+        const pivotX = pinchVBX0 + ratioX * pinchVBW0;
+        const pivotY = pinchVBY0 + ratioY * pinchVBH0;
+        vbX = pivotX - ratioX * newW;
+        vbY = pivotY - ratioY * newH;
+        vbW = newW; vbH = newH;
+        applyVB(); showZoom();
       }
     }, {passive: false});
-    wrap.addEventListener('touchend', () => { dragActive = false; lastPinchDist = null; });
+    wrap.addEventListener('touchend', e => {
+      if(e.touches.length < 2) pinchDist0 = 0;
+      if(e.touches.length === 0) drag = false;
+    });
 
     // Doble clic → fit
     wrap.addEventListener('dblclick', fit);
-    window.addEventListener('resize', () => { if(ready) fit(); });
+    window.addEventListener('resize', () => { /* viewBox se adapta solo por CSS */ });
   }
 
   // Arrancar al abrir el tab "full"
   const _openModal = window.openModal;
   window.openModal = function(tab){
     _openModal(tab);
-    if(tab === 'full'){
-      setTimeout(() => { if(!ready) loadSVG(); else fit(); }, 320);
-    }
+    if(tab === 'full'){ setTimeout(() => { if(!ready) loadSVG(); else fit(); }, 320); }
   };
   const _switchTab = window.switchTab;
   window.switchTab = function(name, btn){
     _switchTab(name, btn);
-    if(name === 'full'){
-      setTimeout(() => { if(!ready) loadSVG(); else fit(); }, 60);
-    }
+    if(name === 'full'){ if(!ready) loadSVG(); else fit(); }
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('tpane-full')?.classList.contains('on')) loadSVG();
   });
 })();
-
 
 // Inicializar el BOM de la pestaña
 renderModalBOM();
