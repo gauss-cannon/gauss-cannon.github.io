@@ -354,24 +354,47 @@ canvas{display:block;touch-action:none}
   font-family:'Black Ops One',serif;font-size:.7rem;
   color:rgba(0,217,176,.6);letter-spacing:.1em;min-width:40px;text-align:center;
 }
-@media(max-width:640px){#pdf-pz-wrap{display:none}}  /* se oculta en móvil, se usa fallback */
-.pdf-wrap{flex:1;width:100%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.pdf-wrap iframe{flex:1;width:100%;border:none;min-height:0;display:block}
-/* On mobile, iframe PDF is unreliable — show open-button fallback prominently */
+@media(max-width:640px){#pdf-pz-wrap{display:none}}  /* se oculta en móvil, se usa preview card */
+
+/* ── Vista previa móvil del circuito completo (igual que sec-card) ── */
+#full-mobile-preview{
+  display:none;   /* visible solo en móvil */
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+}
 @media(max-width:640px){
-  .pdf-wrap iframe{display:none}
-  .pdf-mobile-bar{
-    display:flex!important;
-  }
+  #full-mobile-preview{display:block}
 }
-.pdf-mobile-bar{
-  display:none;
-  flex-direction:column;align-items:center;justify-content:center;
-  gap:14px;padding:36px 24px;text-align:center;flex:1;
+#full-mobile-card{
+  background:rgba(0,217,176,0.03);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  cursor:zoom-in;
+  transition:all 0.25s;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
 }
-.pdf-mobile-bar p{font-size:.85rem;color:var(--text-dim);line-height:1.6;max-width:300px}
-.pdf-fallback{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center}
-.pdf-fallback p{font-size:.85rem;color:var(--text-dim);line-height:1.6;max-width:340px}
+#full-mobile-card:active{
+  border-color:var(--teal);
+  box-shadow:var(--glow-t), 0 4px 12px rgba(0,217,176,0.2);
+  transform:scale(0.98);
+}
+#full-mobile-card .sec-title{
+  padding:9px 13px;font-size:.7rem;font-weight:600;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--teal);border-bottom:1px solid var(--border);
+  background:rgba(0,217,176,0.04);display:flex;align-items:center;justify-content:space-between;
+}
+#full-mobile-card .sec-img-wrap{
+  background:#050e18;overflow:hidden;min-height:160px;
+  display:flex;align-items:center;justify-content:center;
+}
+#full-mobile-card .sec-img-wrap img{
+  width:100%;height:auto;display:block;pointer-events:none;
+}
 .pdf-link{
   display:inline-flex;align-items:center;gap:8px;
   padding:11px 22px;background:var(--teal-dim);border:1px solid var(--border);border-radius:3px;
@@ -818,14 +841,18 @@ canvas{display:block;touch-action:none}
           <span id="pdf-zoom-val">100%</span>
         </div>
       </div>
-      <!-- Fallback móvil -->
-      <div class="pdf-mobile-bar">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--teal);opacity:.35"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-        <p>Ábrelo directamente para verlo con zoom completo.</p>
-        <a class="pdf-link" href="esquemas/esquema-completo.svg" target="_blank">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Ver imagen
-        </a>
+      <!-- Vista previa móvil: tarjeta clickable que abre el pz-viewer -->
+      <div id="full-mobile-preview">
+        <div id="full-mobile-card" onclick="openPZ('esquemas/esquema-completo.svg','Circuito Completo')">
+          <div class="sec-title">
+            Circuito Completo
+            <span class="sec-title-zoom">🔍 Toca para zoom</span>
+          </div>
+          <div class="sec-img-wrap">
+            <img src="esquemas/esquema-completo.svg" alt="Circuito Completo"
+              onerror="this.parentElement.innerHTML='<div class=\'sec-placeholder\'>📁 Imagen no encontrada<code>esquemas/esquema-completo.svg</code></div>'">
+          </div>
+        </div>
       </div>
     </div>
     <div id="tpane-sec" class="tpane">
